@@ -1,0 +1,3 @@
+{
+  "files.encoding": "utf8bom", // ファイル作成時の規定文字セットを UTF-8 with BOM に設定
+}
