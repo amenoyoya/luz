@@ -1,14 +1,5 @@
-﻿#include <luz.hpp>
-
-#ifdef _WINDOWS
-    #define _U8(str) wcstou8(L##str)
-    #define _S(str) L##str
-    #define _fputs(fp, str) fputws((u8towcs(str) + L"\n").c_str(), fp) 
-#else
-    #define _U8(str) std::string(str)
-    #define _S(str) str
-    #define _fputs(fp, str) fputs((_U8(str) + "\n").c_str(), fp)
-#endif
+﻿#define _USE_LUZ_CORE
+#include <luz/core.hpp>
 
 inline std::string readfile(const std::string &filename) {
     FILE *fp = fs_fopen(filename.c_str(), "rb");

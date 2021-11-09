@@ -1,17 +1,16 @@
 ﻿#pragma once
 
-#include "luz/os.hpp"
-#include "luz/filesystem.hpp"
+#include "core/os.hpp"
+#include "core/filesystem.hpp"
 
 #ifdef _WINDOWS
     #pragma warning(disable:4005)
+    #pragma comment(linker, "/nodefaultlib:libcmt")
     
     #pragma comment(lib, "user32.lib")
     #pragma comment(lib, "shell32.lib")
     #pragma comment(lib, "shlwapi.lib")
     #pragma comment(lib, "winmm.lib")
-
-    #pragma comment(lib, "libluz.lib")
 #endif
 
 /*** main function macro ***/
@@ -33,4 +32,23 @@
         return luz_main(args);\
     }\
     int luz_main(std::vector<std::string> &args)
+#endif
+
+/*** utility macro ***/
+#ifdef _WINDOWS
+    #define _U8(str) wcstou8(L##str)
+    #define _S(str) L##str
+    #define _fputs(fp, str) fputws((u8towcs(str) + L"\n").c_str(), fp) 
+#else
+    #define _U8(str) std::string(str)
+    #define _S(str) str
+    #define _fputs(fp, str) fputs((_U8(str) + "\n").c_str(), fp)
+#endif
+
+/*** include source files macro ***/
+#ifdef _USE_LUZ_CORE
+    #include <luz/core/string.cpp>
+    #include <luz/core/path.cpp>
+    #include <luz/core/os.cpp>
+    #include <luz/core/filesystem.cpp>
 #endif

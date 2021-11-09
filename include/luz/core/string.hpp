@@ -50,3 +50,15 @@ inline std::string wcstou8(const std::wstring &source) {
     wcstou8((char*)dest.c_str(), source.c_str(), source.size() * 3);
     return dest.c_str();
 }
+
+/// convert to UTF-8 string
+inline std::string strtou8(const std::string &source) {
+    #ifdef _WINDOWS
+        size_t size = MultiByteToWideChar(CP_ACP, 0, source.c_str(), source.size(), nullptr, 0);
+        std::wstring wstr(size + 1, L'\0');
+        if (!MultiByteToWideChar(CP_ACP, 0, source.c_str(), source.size(), (wchar_t*)wstr.c_str(), size)) return "";
+        return std::move(wcstou8(wstr));
+    #else
+        return std::move(source);
+    #endif
+}

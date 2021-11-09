@@ -1,4 +1,4 @@
-﻿#include <luz/os.hpp>
+﻿#include "os.hpp"
 
 #ifdef _WINDOWS
     #include <mmsystem.h>
@@ -7,7 +7,7 @@
 #endif
 
 extern "C" {
-    long os_execute(const char *cmd) {
+    __export long os_execute(const char *cmd) {
         #ifdef _WINDOWS
             return _wsystem(u8towcs(cmd).c_str());
         #else
@@ -15,7 +15,7 @@ extern "C" {
         #endif
     }
 
-    void os_sleep(unsigned long msec) {
+    __export void os_sleep(unsigned long msec) {
         #ifdef _WINDOWS
             Sleep(msec);
         #else
@@ -23,7 +23,7 @@ extern "C" {
         #endif
     }
 
-    unsigned long os_gettime() {
+    __export unsigned long os_gettime() {
         #ifdef _WINDOWS
             return timeGetTime();
         #else
@@ -33,7 +33,7 @@ extern "C" {
         #endif
     }
 
-    bool os_setenv(const char *name, const char *val) {
+    __export bool os_setenv(const char *name, const char *val) {
         #ifdef _WINDOWS
             return FALSE != SetEnvironmentVariableW(u8towcs(name).c_str(), u8towcs(val).c_str());
         #else
@@ -41,7 +41,7 @@ extern "C" {
         #endif
     }
 
-    const char *os_getenv(const char *env) {
+    __export const char *os_getenv(const char *env) {
         #ifdef _WINDOWS
             static std::string result;
 
@@ -58,7 +58,7 @@ extern "C" {
         #endif
     }
 
-    bool os_setcwd(const char *dir) {
+    __export bool os_setcwd(const char *dir) {
         #ifdef _WINDOWS
             return FALSE != SetCurrentDirectoryW(u8towcs(dir).c_str());
         #else
@@ -66,7 +66,7 @@ extern "C" {
         #endif
     }
 
-    const char *os_getcwd(char *dest, size_t size) {
+    __export const char *os_getcwd(char *dest, size_t size) {
         #ifdef _WINDOWS
             wchar_t *buffer = new wchar_t[size];
             

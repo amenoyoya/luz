@@ -1,4 +1,4 @@
-﻿#include <luz/string.hpp>
+﻿#include "string.hpp"
 
 #ifdef _WINDOWS
     #include <io.h> // _setmode
@@ -7,12 +7,12 @@
 
 extern "C" {
     #ifdef _WINDOWS
-        void io_setu16mode(FILE *fp) {
+        __export void io_setu16mode(FILE *fp) {
             _setmode(_fileno(fp), _O_U16TEXT);
         }
     #endif
     
-    bool u8towcs(wchar_t *dest, const char *source, size_t size) {
+    __export bool u8towcs(wchar_t *dest, const char *source, size_t size) {
         const unsigned char nMaxReadSize = 6;
         char    chBuffer[nMaxReadSize], *src = (char*)source;
         size_t  nReadDataSize = 0, i = 0;
@@ -79,7 +79,7 @@ extern "C" {
         return true;
     }
     
-    bool wcstou8(char *dest, const wchar_t *source, size_t size) {
+    __export bool wcstou8(char *dest, const wchar_t *source, size_t size) {
         wchar_t wcWork1 = 0, *src = (wchar_t*)source;
         size_t  i = 0;
         long    sizeBytes = 0;

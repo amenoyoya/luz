@@ -24,6 +24,9 @@ extern "C" {
     /// remove directory (recursively)
     __export bool fs_rmdir(const char *dir);
 
+    /// rename (move) file / directory
+    __export bool fs_rename(const char *src, const char *dest, bool isOverwrite);
+
     /*** ================================================== ***/
     /*** file enumerator ***/
 

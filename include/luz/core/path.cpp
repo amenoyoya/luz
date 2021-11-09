@@ -1,4 +1,4 @@
-﻿#include <luz/path.hpp>
+﻿#include "path.hpp"
 
 #ifdef _WINDOWS
     #include <shlwapi.h>
@@ -8,43 +8,43 @@
 #endif
 
 extern "C" {
-    const char *path_basename(char *dest, const char *path) {
+    __export const char *path_basename(char *dest, const char *path) {
         return strcpy(dest, path_basename(path).c_str());
     }
 
-    const char *path_stem(char *dest, const char *path) {
+    __export const char *path_stem(char *dest, const char *path) {
         return strcpy(dest, path_stem(path).c_str());
     }
 
-    const char *path_ext(char *dest, const char *path) {
+    __export const char *path_ext(char *dest, const char *path) {
         return strcpy(dest, path_ext(path).c_str());
     }
 
-    const char *path_parentdir(char *dest, const char *path) {
+    __export const char *path_parentdir(char *dest, const char *path) {
         return strcpy(dest, path_parentdir(path).c_str());
     }
     
-    bool path_isfile(const char *path) {
+    __export bool path_isfile(const char *path) {
         return path_isfile(std::string(path));
     }
 
-    bool path_isdir(const char *path) {
+    __export bool path_isdir(const char *path) {
         return path_isdir(std::string(path));
     }
 
-    const char *path_complete(char *dest, const char *path) {
+    __export const char *path_complete(char *dest, const char *path) {
         return strcpy(dest, path_complete(path).c_str());
     }
 
-    void path_stat(path_stat_t *dest, const char *path) {
+    __export void path_stat(path_stat_t *dest, const char *path) {
         memcpy(dest, path_stat(path).get(), sizeof(path_stat_t));
     }
 
-    const char *path_append_slash(char *dest, const char *path) {
+    __export const char *path_append_slash(char *dest, const char *path) {
         return strcpy(dest, path_append_slash(path).c_str());
     }
 
-    const char *path_remove_slash(char *dest, const char *path) {
+    __export const char *path_remove_slash(char *dest, const char *path) {
         return strcpy(dest, path_remove_slash(path).c_str());
     }
 }

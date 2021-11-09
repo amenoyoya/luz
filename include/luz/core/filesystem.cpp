@@ -1,4 +1,4 @@
-﻿#include <luz/filesystem.hpp>
+﻿#include "filesystem.hpp"
 
 #ifdef _WINDOWS
     #include <shlwapi.h>
@@ -8,7 +8,7 @@
 #endif
 
 extern "C" {
-    FILE *fs_fopen(const char *filename, const char *mode) {
+    __export FILE *fs_fopen(const char *filename, const char *mode) {
         if (*mode == 'w') fs_mkdir(path_parentdir(filename).c_str()); // auto create parent directories
         #ifdef _WINDOWS
             return _wfopen(u8towcs(filename).c_str(), u8towcs(mode).c_str());
@@ -17,7 +17,7 @@ extern "C" {
         #endif
     }
 
-    FILE *fs_popen(const char *procname, const char *mode) {
+    __export FILE *fs_popen(const char *procname, const char *mode) {
         #ifdef _WINDOWS
             return _wpopen(u8towcs(procname).c_str(), u8towcs(mode).c_str());
         #else
@@ -25,7 +25,7 @@ extern "C" {
         #endif
     }
 
-    bool fs_copyfile(const char *src, const char *dest, bool isOverwrite) {
+    __export bool fs_copyfile(const char *src, const char *dest, bool isOverwrite) {
         if (!isOverwrite && path_isfile(dest)) return false;
         
         FILE *in = fs_fopen(src, "rb"), *out = fs_fopen(dest, "wb");
@@ -47,7 +47,7 @@ extern "C" {
         return true;
     }
 
-    bool fs_rmfile(const char *filename) {
+    __export bool fs_rmfile(const char *filename) {
         #ifdef _WINDOWS
             return FALSE != DeleteFileW(u8towcs(filename).c_str());
         #else
@@ -56,7 +56,7 @@ extern "C" {
     }
 
     #ifdef _WINDOWS
-        bool fs_mkdir(const char *dir) {
+        __export bool fs_mkdir(const char *dir) {
             std::wstring wdir = u8towcs(dir);
             wchar_t *p = (wchar_t*)wdir.c_str();
             unsigned long i = 0;
@@ -73,7 +73,7 @@ extern "C" {
             return true;
         }
     #else
-        bool fs_mkdir(const char *_dir) {
+        __export bool fs_mkdir(const char *_dir) {
             std::string dir = _dir;
             char *p = (char*)dir.c_str();
             unsigned long i = 0;
@@ -91,7 +91,7 @@ extern "C" {
         }
     #endif
     
-    bool fs_copydir(const char *src, const char *dest) {
+    __export bool fs_copydir(const char *src, const char *dest) {
         fs_dirent_t *dirent = fs_opendir(src);
         if (dirent == nullptr) return false;
         if (!path_isdir(dest) && !fs_mkdir(dest)){
@@ -129,7 +129,7 @@ extern "C" {
         #endif
     }
     
-    bool fs_rmdir(const char *dir) {
+    __export bool fs_rmdir(const char *dir) {
         fs_dirent_t *dirent = fs_opendir(dir);
         if (dirent == nullptr) return false;
 
@@ -153,10 +153,30 @@ extern "C" {
         return rmdir_empty(dir); // remove empty directory
     }
 
+    /// @private rename file / directory
+    inline bool fs_rename_base(const char *src, const char *dest) {
+        return 0 ==
+            #ifdef _WINDOWS
+                _wrename(u8towcs(src).c_str(), u8towcs(dest).c_str());
+            #else
+                rename(src, dest);
+            #endif
+    }
+
+    __export bool fs_rename(const char *src, const char *dest, bool isOverwrite) {
+        bool isdir = path_isdir(dest), isfile = path_isfile(dest);
+        if (!isdir && !isfile) return fs_rename_base(src, dest);
+        if (isOverwrite) {
+            if (isdir) return fs_rmdir(dest) && fs_rename_base(src, dest);
+            if (isfile) return fs_rmfile(dest) && fs_rename_base(src, dest);
+        }
+        return false;
+    }
+
     /*** ================================================== ***/
     /*** file enumerator ***/
     #ifdef _WINDOWS
-        fs_dirent_t *fs_opendir(const char *_dir) {
+        __export fs_dirent_t *fs_opendir(const char *_dir) {
             WIN32_FIND_DATA info;
             std::string dir = std::move(path_append_slash(_dir));
             unsigned long handler = (unsigned long)FindFirstFile((u8towcs(dir) + L"*.*").c_str(), &info);
@@ -169,7 +189,7 @@ extern "C" {
             };
         }
         
-        void fs_closedir(fs_dirent_t *self) {
+        __export void fs_closedir(fs_dirent_t *self) {
             if (self == nullptr) return;
             if (self->handler) {
                 FindClose((HANDLE)self->handler);
@@ -178,7 +198,7 @@ extern "C" {
             self = nullptr;
         }
         
-        bool fs_seekdir(fs_dirent_t *self) {
+        __export bool fs_seekdir(fs_dirent_t *self) {
             WIN32_FIND_DATA info;
             
             if (!self->handler) return false;
@@ -188,7 +208,7 @@ extern "C" {
             return true;
         }
     #else
-        fs_dirent_t *fs_opendir(const char *_dir) {
+        __export fs_dirent_t *fs_opendir(const char *_dir) {
             std::string dir = path_append_slash(_dir);
             unsigned long handler = (unsigned long)opendir(dir.c_str());
             
@@ -205,7 +225,7 @@ extern "C" {
             };
         }
         
-        void fs_closedir(fs_dirent_t *self) {
+        __export void fs_closedir(fs_dirent_t *self) {
             if (self == nullptr) return;
             if (self->handler) {
                 closedir((DIR*)self->handler);
@@ -214,7 +234,7 @@ extern "C" {
             self = nullptr;
         }
         
-        bool fs_seekdir(fs_dirent_t *self) {
+        __export bool fs_seekdir(fs_dirent_t *self) {
             if (!self->handler) return false;
             
             struct dirent* dent = readdir((DIR*)self->handler);
@@ -225,11 +245,11 @@ extern "C" {
         }
     #endif
 
-    const char *fs_readdir_name(fs_dirent_t *self) {
+    __export const char *fs_readdir_name(fs_dirent_t *self) {
         return self->current_name.c_str();
     }
 
-    const char *fs_readdir_path(fs_dirent_t *self) {
+    __export const char *fs_readdir_path(fs_dirent_t *self) {
         return self->current_path.c_str();
     }
 }
