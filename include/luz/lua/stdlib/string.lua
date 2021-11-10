@@ -110,8 +110,6 @@ end
 
 
 -- ffi functions
-local ffi = require "ffi"
-
 ffi.cdef[[
 void io_setu16mode(struct FILE *fp); // Windows only
 bool u8towcs(wchar_t *dest, const char *source, size_t size);
@@ -162,8 +160,8 @@ function print(...)
                 io.stdout
             )
         end
-        ffi.C.fputws(string.u8towcs("\n"), io.stdout)
     end
+    ffi.C.fputws(string.u8towcs("\n"), io.stdout)
 end
 
 -- Print formatted string

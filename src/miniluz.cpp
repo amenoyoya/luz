@@ -2,10 +2,6 @@
 #define _USE_LUZ_LUA
 #include <luz/lua.hpp>
 
-#ifdef _WINDOWS
-    #pragma comment(lib, "libluz.lib")
-#endif
-
 __main() {
     sol::state lua;
     std::string errorMessage;

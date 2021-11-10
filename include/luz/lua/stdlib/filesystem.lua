@@ -3,8 +3,6 @@ fs = {
     path = {}
 }
 
-local ffi = require "ffi"
-
 ffi.cdef[[
 typedef struct {
     unsigned long device_id, inode;
@@ -30,6 +28,16 @@ const char *path_remove_slash(char *dest, const char *path);
 
 struct FILE *fs_fopen(const char *filename, const char *mode);
 struct FILE *fs_popen(const char *procname, const char *mode);
+void fclose(struct FILE *fp);
+void pclose(struct FILE *fp);
+int fgetc(struct FILE *fp);
+size_t fread(void *buf, size_t size, size_t n, struct FILE *fp);
+size_t fwrite(const void *buf, size_t size, size_t n, struct FILE *fp);
+int fputc(int c, struct FILE *fp);
+int fseek(struct FILE *fp, long offset, int origin);
+long int ftell(struct FILE *fp);
+int fflush(struct FILE *fp);
+
 bool fs_copyfile(const char *src, const char *dest, bool isOverwrite);
 bool fs_rmfile(const char *filename);
 bool fs_mkdir(const char *dir);
@@ -126,7 +134,7 @@ end
 
 -- Remove file
 function fs.rmfile(filename)
-    return ffi.C.fs_rmdir(filename)
+    return ffi.C.fs_rmfile(filename)
 end
 
 -- Create directory (recursively)
@@ -150,37 +158,174 @@ function fs.rename(src, dest, isOverwrite)
 end
 
 
+-- File seek from type
+fs.seek_from = {
+    head = 0,
+    cur = 1,
+    tail = 2,
+}
+
+-- EOF symbol
+fs.eof = -1
+
+--- File reader/writer ---
+local filerw = {
+    -- Get file size
+    -- @returns {number}
+    size = function (self)
+        local cur = self:pos() -- store current position
+        self:seek(0, fs.seek_from.tail)
+        
+        local size = self:pos()
+        self:seek(cur, fs.seek_from.head) -- restore to original position
+        return size
+    end,
+    
+    -- Read one line
+    -- @returns {string}
+    readline = function (self)
+        local bytes = {}
+        local c = self:readchar()
+        while c ~= fs.eof do
+            if c == 13 --[[ \r ]] then
+                self:seek(1, fs.seek_from.cur) -- skip next lf
+                break
+            elseif c == 10 --[[ \n ]] then
+                break
+            end
+            bytes[#bytes + 1] = c
+            c = self:readchar()
+        end
+        return string.char(unpack(bytes))
+    end,
+    
+    -- Read 1 byte
+    -- @returns {number}
+    readchar = function (self)
+        return ffi.C.fgetc(self.handler)
+    end,
+    
+    -- Read specified size of data
+    -- @param {number} size: reading size
+    -- @returns {string}
+    read = function (self, size)
+        local data = ffi.new("char[?]", size + 1)
+        return 0 < ffi.C.fread(data, 1, size, self.handler) and ffi.string(data) or ""
+    end,
+    
+    -- Write data
+    -- @param {string} data
+    -- @param {number} size: writing size (default: data:len())
+    -- @returns {number} written size
+    write = function (self, data, size)
+        return ffi.C.fwrite(ffi.cast("char*", data), 1, size or data:len(), self.handler)
+    end,
+    
+    -- Write 1 byte
+    -- @param {number} c: byte-code
+    -- @returns {boolean}
+    writechar = function (self, c)
+        return fs.eof ~= ffi.C.fputc(c, self.handler)
+    end,
+    
+    -- Seek file pointer
+    -- @param {number} offset: seeking bytes
+    -- @param {numbedr} from: fs.seek_from.* (default: fs.seek_from.head)
+    -- @returns {boolean}
+    seek = function (self, offset, from)
+        return 0 == ffi.C.fseek(self.handler, offset, from or fs.seek_from.head)
+    end,
+    
+    -- Get current file pointer position
+    -- @returns {number}
+    pos = function (self)
+        return tonumber(ffi.C.ftell(self.handler))
+    end,
+    
+    -- Flush file stream
+    -- @returns {boolean}
+    flush = function (self)
+        return 0 == ffi.C.fflush(self.handler)
+    end,
+}
+
+-- Open file (sopports pipe-mode)
+-- @param {string} filename: corrspondence of recursive mkdir if write-mode
+-- @param {string} mode: "r" => read-mode (default), "w" => write-mode, "a" => append-mode, "w+" => read+write-mode
+--                       If you specify "p" at the beginning of mode, it will open in pipe-mode: "pw", "pr+", etc
+--                       If the mode is write-mode, parent directories will be created automatically
+-- @returns {filerw|nil}
+function fs.open(filename, mode)
+    local file = setmetatable({}, {__index = filerw})
+    
+    mode = mode or "rb"
+    -- pipe-mode
+    if mode:match"^p" then
+        file.close = function (self) ffi.C.pclose(self.handler) end
+        file.handler = ffi.gc(ffi.C.fs_popen(filename, mode.sub(2)), ffi.C.pclose)
+        return file.handler and file or nil
+    end
+    -- create parent directory recursively
+    if mode:match"^w" then
+        fs.mkdir(fs.path.parentdir(filename))
+    end
+    -- force to open in binary-mode
+    if mode:find"b" == nil then
+        mode = mode .. "b"
+    end
+    file.close = function (self) ffi.C.fclose(self.handler) end
+    file.handler = ffi.gc(ffi.C.fs_fopen(filename, mode), ffi.C.fclose)
+    return file.handler and file or nil
+end
+
+-- Read all data in the file
+function fs.readfile(filename, size)
+    local file = fs.open(filename, "rb")
+    local data = file and file:read(size or file:size()) or ""
+    file:close()
+    return data
+end
+
+-- Write data to the file
+function fs.writefile(filename, data, size)
+    local file = fs.open(filename, "wb")
+    local written = file and file:write(data, size) or 0
+    file:close()
+    return written
+end
+
+
 --- File enumerator ---
+local enumerator = {
+    -- Close directory
+    close = function(self)
+        ffi.C.fs_closedir(self.handler)
+    end,
+
+    -- Seek to next file / directory
+    -- @returns {boolean}
+    seek = function(self)
+        return ffi.C.fs_seekdir(self.handler)
+    end,
+
+    -- Get current file / directory name
+    -- @returns {string}
+    readname = function(self)
+        return ffi.string(ffi.C.fs_readdir_name(self.handler))
+    end,
+
+    -- Get current file / directory path
+    readpath = function(self)
+        return ffi.string(ffi.C.fs_readdir_path(self.handler))
+    end,
+} 
 
 -- Open directory
--- @returns {table|nil} FileEnumerator
+-- @returns {eumerator|nil}
 function fs.opendir(dir)
-    local dirent = ffi.gc(ffi.C.fs_opendir(dir), ffi.C.fs_closedir)
-    return dirent and {
-        dirent = dirent,
-
-        -- Close directory
-        close = function(self)
-            ffi.C.fs_closedir(self.dirent)
-        end,
-
-        -- Seek to next file / directory
-        -- @returns {boolean}
-        seek = function(self)
-            return ffi.C.fs_seekdir(self.dirent)
-        end,
-
-        -- Get current file / directory name
-        -- @returns {string}
-        readname = function(self)
-            return ffi.string(ffi.C.fs_readdir_name(self.dirent))
-        end,
-
-        -- Get current file / directory path
-        readpath = function(self)
-            return ffi.string(ffi.C.fs_readdir_path(self.dirent))
-        end,
-    } or nil
+    local dirent = setmetatable({}, {__index = enumerator})
+    dirent.handler = ffi.gc(ffi.C.fs_opendir(dir), ffi.C.fs_closedir)
+    return dirent.handler and dirent or nil
 end
 
 -- @private Enumerate files / directories base function

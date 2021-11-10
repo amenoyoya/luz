@@ -1,7 +1,5 @@
 --- Operating System library ---
 
-local ffi = require "ffi"
-
 ffi.cdef[[
 long os_execute(const char *cmd);
 void os_sleep(unsigned long msec);

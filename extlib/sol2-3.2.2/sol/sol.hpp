@@ -5722,7 +5722,31 @@ namespace sol {
 
 		/// \group map
 		/// \synopsis template <class F> auto map(F &&f) &&;
-		template <class    ||{⁄<<      ˚˚˚˜  ç    fects If `*this` has a value, returns `*this`.
+		template <class F>
+		SOL_TL_OPTIONAL_11_CONSTEXPR decltype(detail::optional_map_impl(std::declval<optional&&>(), std::declval<F&&>())) map(F&& f) && {
+			return detail::optional_map_impl(std::move(*this), std::forward<F>(f));
+		}
+
+		/// \group map
+		/// \synopsis template <class F> auto map(F &&f) const&;
+		template <class F>
+		constexpr decltype(detail::optional_map_impl(std::declval<const optional&>(), std::declval<F&&>())) map(F&& f) const& {
+			return detail::optional_map_impl(*this, std::forward<F>(f));
+		}
+
+#ifndef SOL_TL_OPTIONAL_NO_CONSTRR
+		/// \group map
+		/// \synopsis template <class F> auto map(F &&f) const&&;
+		template <class F>
+		constexpr decltype(detail::optional_map_impl(std::declval<const optional&&>(), std::declval<F&&>())) map(F&& f) const&& {
+			return detail::optional_map_impl(std::move(*this), std::forward<F>(f));
+		}
+#endif
+#endif
+
+		/// \brief Calls `f` if the optional is empty
+		/// \requires `std::invoke_result_t<F>` must be void or convertible to
+		/// `optional<T>`. \effects If `*this` has a value, returns `*this`.
 		/// Otherwise, if `f` returns `void`, calls `std::forward<F>(f)` and returns
 		/// `std::nullopt`. Otherwise, returns `std::forward<F>(f)()`.
 		///
@@ -5750,7 +5774,8 @@ namespace sol {
 			if (has_value())
 				return std::move(*this);
 
-urn nullopt;
+			std::forward<F>(f)();
+			return nullopt;
 		}
 
 		/// \exclude
@@ -7801,38 +7826,6 @@ namespace sol {
 	            || (std::is_array_v<
 	                     meta::unqualified_t<T>> || (!std::is_same_v<meta::unqualified_t<T>, state> && !std::is_same_v<meta::unqualified_t<T>, state_view>))> {
 	};
-
-	template <typename T>
-	inline type type_of() {
-		return lua_type_of<meta::unqualified_t<T>>::value;
-	}
-
-	namespace detail {
-		template <typename T>
-		struct is_non_factory_constructor : std::false_type { };
-
-		template <typename... Args>
-		struct is_non_factory_constructor<constructors<Args...>> : std::true_type { };
-
-		template <typename... Args>
-		struct is_non_factory_constructor<constructor_wrapper<Args...>> : std::true_type { };
-
-		template <>
-		struct is_non_factory_constructor<no_construction> : std::true_type { };
-
-		template <typename T>
-		inline constexpr bool is_non_factory_constructor_v = is_non_factory_constructor<T>::value;
-
-		template <typename T>
-		struct is_constructor : is_non_factory_constructor<T> { };
-
-		template <typename... Args>
-		struct is_constructor<factory_wrapper<Args...>> : std::true_type { };
-
-		template <typename T>
-		struct is_constructor<protect_t<T>> : is_constructor<meta::unqualified_t<T>> { };
-
-		template <typename F, typename... Policies>
 
 	template <typename T>
 	inline type type_of() {
@@ -13798,7 +13791,43 @@ namespace sol { namespace stack {
 	template <typename T>
 	struct unqualified_pusher<as_table_t<T>> {
 		static int push(lua_State* L, const T& v) {
-			using inner_t = std::remove_pointer_    ||3    ˚˚˚˜  å    :‚_t) {
+			using inner_t = std::remove_pointer_t<meta::unwrap_unqualified_t<T>>;
+			if constexpr (is_container_v<inner_t>) {
+				return stack::push<detail::as_table_tag<T>>(L, v);
+			}
+			else {
+				return stack::push(L, v);
+			}
+		}
+	};
+
+	template <typename T>
+	struct unqualified_pusher<nested<T>> {
+		static int push(lua_State* L, const T& tablecont) {
+			using Tu = meta::unwrap_unqualified_t<T>;
+			using inner_t = std::remove_pointer_t<Tu>;
+			if constexpr (is_container_v<inner_t>) {
+				return stack::push<detail::as_table_tag<T>>(L, tablecont, nested_tag);
+			}
+			else {
+				return stack::push<Tu>(L, tablecont);
+			}
+		}
+	};
+
+	template <typename T>
+	struct unqualified_pusher<std::initializer_list<T>> {
+		static int push(lua_State* L, const std::initializer_list<T>& il) {
+			unqualified_pusher<detail::as_table_tag<std::initializer_list<T>>> p {};
+			// silence annoying VC++ warning
+			(void)p;
+			return p.push(L, il);
+		}
+	};
+
+	template <>
+	struct unqualified_pusher<lua_nil_t> {
+		static int push(lua_State* L, lua_nil_t) {
 #if SOL_IS_ON(SOL_SAFE_STACK_CHECK_I_)
 			luaL_checkstack(L, 1, detail::not_enough_stack_space_generic);
 #endif // make sure stack doesn't overflow
@@ -13830,7 +13859,7 @@ namespace sol { namespace stack {
 		static int push(lua_State* L, lua_CFunction func, int n = 0) {
 #if SOL_IS_ON(SOL_SAFE_STACK_CHECK_I_)
 			luaL_checkstack(L, 1, detail::not_enough_stack_space_generic);
-t overflow
+#endif // make sure stack doesn't overflow
 			lua_pushcclosure(L, func, n);
 			return 1;
 		}
@@ -19360,8 +19389,35 @@ namespace sol {
 		basic_protected_function(lua_State* L, ref_index index)
 		: basic_protected_function(L, index, get_default_handler(L)) {
 		}
-		basic_protected_function(lua_State* L, ref_index index, ha    ||±F    ˚˚˚˜  ê    €7:	return bc;
-		}	return bc;
+		basic_protected_function(lua_State* L, ref_index index, handler_t eh)
+		: base_t(L, index), error_handler(std::move(eh)) {
+#if SOL_IS_ON(SOL_SAFE_REFERENCES_I_)
+			auto pp = stack::push_pop(*this);
+			constructor_handler handler{};
+			stack::check<basic_protected_function>(lua_state(), -1, handler);
+#endif // Safety
+		}
+
+		template <typename Fx>
+		int dump(lua_Writer writer, void* userdata, bool strip, Fx&& on_error) const {
+			this->push();
+			auto ppn = stack::push_popper_n<false>(this->lua_state(), 1);
+			int r = lua_dump(this->lua_state(), writer, userdata, strip ? 1 : 0);
+			if (r != 0) {
+				return on_error(this->lua_state(), r, writer, userdata, strip);
+			}
+			return r;
+		}
+
+		int dump(lua_Writer writer, void* userdata, bool strip = false) const {
+			return dump(writer, userdata, strip, &dump_pass_on_error);
+		}
+
+		template <typename Container = bytecode>
+		Container dump() const {
+			Container bc;
+			(void)dump(static_cast<lua_Writer>(&basic_insert_dump_writer<Container>), static_cast<void*>(&bc), false, &dump_throw_on_error);
+			return bc;
 		}
 
 		template <typename Container = bytecode, typename Fx>
@@ -19387,7 +19443,8 @@ namespace sol {
 				// we do not expect the function to already be on the stack: push it
 				if (error_handler.valid()) {
 					detail::protected_handler<true, handler_t> h(error_handler);
-					base_t::push();std::forward<Argstd::forward<Args>(args)...);
+					base_t::push();
+					int pushcount = stack::multi_push_reference(lua_state(), std::forward<Args>(args)...);
 					return invoke(types<Ret...>(), std::make_index_sequence<sizeof...(Ret)>(), pushcount, h);
 				}
 				else {
@@ -22733,76 +22790,6 @@ namespace sol { namespace u_detail {
 		}
 
 		// return the named metatable we want names linked into
-		storage.named_metatable.push();
-		return 1;
-	}
-}} // namespace sol::u_detail
-
-// end of sol/usertype_storage.hpp
-
-// beginning of sol/usertype_proxy.hpp
-
-namespace sol {
-	template <typename Table, typename Key>
-	struct usertype_proxy : public proxy_base<usertype_proxy<Table, Key>> {
-	private:
-		using key_type = detail::proxy_key_t<Key>;
-
-		template <typename T, std::size_t... I>
-		decltype(auto) tuple_get(std::index_sequence<I...>) const & {
-			return tbl.template traverse_get<T>(std::get<I>(key)...);
-		}
-
-		template <typename T, std::size_t... I>
-		decltype(auto) tuple_get(std::index_sequence<I...>) && {
-			return tbl.template traverse_get<T>(std::get<I>(std::move(key))...);
-		}
-
-		template <std::size_t... I, typename T>
-		void tuple_set(std::index_sequence<I...>, T&& value) & {
-			if constexpr (sizeof...(I) > 1) {
-				tbl.traverse_set(std::get<I>(key)..., std::forward<T>(value));
-			}
-			else {
-				tbl.set(std::get<I>(key)..., std::forward<T>(value));
-			}
-		}
-
-		template <std::size_t... I, typename T>
-		void tuple_set(std::index_sequence<I...>, T&& value) && {
-			if constexpr (sizeof...(I) > 1) {
-				tbl.traverse_set(std::get<I>(std::move(key))..., std::forward<T>(value));
-			}
-			else {
-				tbl.set(std::get<I>(std::move(key))..., std::forward<T>(value));
-			}
-		}
-
-	public:
-		Table tbl;
-		key_type key;
-
-		template <typename T>
-		usertype_proxy(Table table, T&& k)
-		: tbl(table), key(std::forward<T>(k)) {
-		}
-
-		template <typename T>
-		usertype_proxy& set(T&& item) & {
-			using idx_seq = std::make_index_sequence<std::tuple_size_v<meta::unqualified_t<key_type>>>;
-			tuple_set(idx_seq(), std::forward<T>(item));
-			return *this;
-		}
-
-		template <typename T>
-		usertype_proxy&& set(T&& item) && {
-			using idx_seq = std::make_index_sequence<std::tuple_size_v<meta::unqualified_t<key_type>>>;
-			std::move(*this).tuple_set(idx_seq(), std::forward<T>(item));
-			return std::move(*this);
-		}
-
-		template <typename T>
-		useable we want names linked into
 		storage.named_metatable.push();
 		return 1;
 	}

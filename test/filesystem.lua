@@ -15,3 +15,12 @@ while fs.path.isdir"❗party" do
 end
 
 assert(#fs.enumfiles"❗party" == 0)
+
+print("this file:", fs.readfile(package.__chunk))
+print("write bytes:", fs.writefile("⭐", "⭐🌍🌛"))
+
+local file = fs.open("⭐")
+assert(file:readline() == "⭐🌍🌛")
+file:close()
+
+assert(fs.rmfile"⭐")
