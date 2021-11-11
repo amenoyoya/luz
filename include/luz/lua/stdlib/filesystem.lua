@@ -1,7 +1,6 @@
 --- filesystem library ---
-fs = {
-    path = {}
-}
+fs = fs or {}
+fs.path = {}
 
 ffi.cdef[[
 typedef struct {
@@ -28,8 +27,8 @@ const char *path_remove_slash(char *dest, const char *path);
 
 struct FILE *fs_fopen(const char *filename, const char *mode);
 struct FILE *fs_popen(const char *procname, const char *mode);
-void fclose(struct FILE *fp);
-void pclose(struct FILE *fp);
+void fs_fclose(struct FILE *fp);
+void fs_pclose(struct FILE *fp);
 int fgetc(struct FILE *fp);
 size_t fread(void *buf, size_t size, size_t n, struct FILE *fp);
 size_t fwrite(const void *buf, size_t size, size_t n, struct FILE *fp);
@@ -97,22 +96,11 @@ function fs.path.complete(path)
 end
 
 -- Get the file / directory state
+-- @returns {cdata<path_stat_t*>}
 function fs.path.stat(path)
     local stat = ffi.new("path_stat_t")
     ffi.C.path_stat(stat, path)
-    return {
-        device_id = stat.device_id,
-        inode = stat.inode,
-        access_mode = stat.access_mode,
-        nlinks = stat.nlinks,
-        user_id = stat.user_id,
-        group_id = stat.group_id,
-        special_device_id = stat.special_device_id,
-        size = stat.size,
-        last_accessed_seconds = stat.last_accessed_seconds,
-        last_modified_seconds = stat.last_modified_seconds,
-        last_changed_seconds = stat.last_changed_seconds,
-    }
+    return stat
 end
 
 -- Append slash symbol into the end of path
@@ -261,8 +249,8 @@ function fs.open(filename, mode)
     mode = mode or "rb"
     -- pipe-mode
     if mode:match"^p" then
-        file.close = function (self) ffi.C.pclose(self.handler) end
-        file.handler = ffi.gc(ffi.C.fs_popen(filename, mode.sub(2)), ffi.C.pclose)
+        file.close = function (self) ffi.C.fs_pclose(self.handler) end
+        file.handler = ffi.gc(ffi.C.fs_popen(filename, mode.sub(2)), ffi.C.fs_pclose)
         return file.handler and file or nil
     end
     -- create parent directory recursively
@@ -273,8 +261,8 @@ function fs.open(filename, mode)
     if mode:find"b" == nil then
         mode = mode .. "b"
     end
-    file.close = function (self) ffi.C.fclose(self.handler) end
-    file.handler = ffi.gc(ffi.C.fs_fopen(filename, mode), ffi.C.fclose)
+    file.close = function (self) ffi.C.fs_fclose(self.handler) end
+    file.handler = ffi.gc(ffi.C.fs_fopen(filename, mode), ffi.C.fs_fclose)
     return file.handler and file or nil
 end
 

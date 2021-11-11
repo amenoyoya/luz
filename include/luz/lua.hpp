@@ -22,6 +22,6 @@ void lua_dotty(sol::state &lua, const std::string &progname = "luz");
 
 /*** include source files macro ***/
 #ifdef _USE_LUZ_LUA
-    #include <luz/lua/registlib.cpp>
-    #include <luz/lua/dotty.cpp>
+    #include "lua/registlib.cpp"
+    #include "lua/dotty.cpp"
 #endif

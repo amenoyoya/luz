@@ -17,12 +17,30 @@ extern "C" {
         #endif
     }
 
+    __export void fs_fclose(FILE *fp) {
+        if (fp) {
+            fclose(fp);
+            fp = nullptr;
+        }
+    }
+
     __export FILE *fs_popen(const char *procname, const char *mode) {
         #ifdef _WINDOWS
             return _wpopen(u8towcs(procname).c_str(), u8towcs(mode).c_str());
         #else
             return fopen(procname, mode);
         #endif
+    }
+
+    __export void fs_pclose(FILE *fp) {
+        if (fp) {
+            #ifdef _WINDOWS
+                _pclose(fp);
+            #else
+                pclose(fp);
+            #endif
+            fp = nullptr;
+        }
     }
 
     __export bool fs_copyfile(const char *src, const char *dest, bool isOverwrite) {

@@ -16,6 +16,8 @@ static unsigned char table_lib_code[] = {
     #include "stdlib/os.cpp"
 }, filesystem_lib_code[] = {
     #include "stdlib/filesystem.cpp"
+}, zip_lib_code[] = {
+    #include "stdlib/zip.cpp"
 }, lpeg_lib_code[] = {
     #include "stdlib/lpeg.cpp"
 };
@@ -44,6 +46,7 @@ static bool regist_lua_stdlib(sol::state &lua, std::string *errorMessage) {
     if (!exec_lua_buffer(lua, (const char *)string_lib_code, sizeof(string_lib_code), "@stdlib://string", errorMessage)) return false;
     if (!exec_lua_buffer(lua, (const char *)os_lib_code, sizeof(os_lib_code), "@stdlib://os", errorMessage)) return false;
     if (!exec_lua_buffer(lua, (const char *)filesystem_lib_code, sizeof(filesystem_lib_code), "@stdlib://filesystem", errorMessage)) return false;
+    if (!exec_lua_buffer(lua, (const char *)zip_lib_code, sizeof(zip_lib_code), "@stdlib://zip", errorMessage)) return false;
     if (!exec_lua_buffer(lua, (const char *)lpeg_lib_code, sizeof(lpeg_lib_code), "@stdlib://lpeg", errorMessage)) return false;
 
     /// oberload `debug.debug()`: call lua_dotty

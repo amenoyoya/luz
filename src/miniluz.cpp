@@ -1,5 +1,7 @@
 ﻿#define _USE_LUZ_CORE
+#define _USE_LUZ_ZIP
 #define _USE_LUZ_LUA
+#include <luz/zip.hpp>
 #include <luz/lua.hpp>
 
 __main() {

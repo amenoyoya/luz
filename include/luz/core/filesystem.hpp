@@ -3,11 +3,17 @@
 #include "path.hpp"
 
 extern "C" {
-    /// open file (UTF-8 corrspondence)
+    /// open file (supports UTF-8 in Windows)
     __export FILE *fs_fopen(const char *filename, const char *mode);
 
-    /// open pipe (UTF-8 correspondence)
+    /// close file safely
+    __export void fs_fclose(FILE *fp);
+
+    /// open pipe (supports UTF-8 in Windows)
     __export FILE *fs_popen(const char *procname, const char *mode);
+
+    /// close pipe safely
+    __export void fs_pclose(FILE *fp);
 
     /// copy file
     __export bool fs_copyfile(const char *src, const char *dest, bool isOverwrite);

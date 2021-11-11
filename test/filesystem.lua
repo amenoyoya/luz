@@ -24,3 +24,6 @@ assert(file:readline() == "⭐🌍🌛")
 file:close()
 
 assert(fs.rmfile"⭐")
+
+--- zip, unz ---
+assert(fs.zip.compress("../src/", "./source.zip", 9, "password"))

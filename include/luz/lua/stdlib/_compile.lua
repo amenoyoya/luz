@@ -24,13 +24,15 @@ compile("table.lua", "table.cpp", "@stdlib://table")
 compile("string.lua", "string.cpp", "@stdlib://string")
 compile("os.lua", "os.cpp", "@stdlib://os")
 compile("filesystem.lua", "filesystem.cpp", "@stdlib://filesystem")
+compile("zip.lua", "zip.cpp", "@stdlib://zip")
 compile("lpeg.lua", "lpeg.cpp", "@stdlib://lpeg")
 
--- ライブラリのロード順
+-- loading order of libraries
 --[[
     1. table
     2. string
     3. os
     4. filesystem
-    5. lpeg
+    5. zip
+    6. lpeg
 ]]

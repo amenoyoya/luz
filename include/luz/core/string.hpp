@@ -16,6 +16,10 @@ extern "C" {
     
     /// convert wide string (UTF-16) to UTF-8 string
     __export bool wcstou8(char *dest, const wchar_t *source, size_t size);
+
+    /// get crc32 of the data
+    // @param start: usually 0xffffffff
+    __export unsigned long get_crc32(const char *data, size_t datasize, unsigned long start);
 }
 
 /*** ================================================== ***/

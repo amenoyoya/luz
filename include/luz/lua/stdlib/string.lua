@@ -155,7 +155,7 @@ function print(...)
         for i = 1, n do
             ffi.C.fputws(
                 string.u8towcs(
-                    (i == 1 and "" or "\t") .. ((type(list[i]) == 'table' and table.print_flag) and table.serialize(list[i], 2, true) or tostring(list[i]))
+                    (i == 1 and "" or "\t") .. ((type(list[i]) == 'table' and table.print_flag) and table.serialize(list[i], 2, true) or (tostring(list[i])) or "nil")
                 ),
                 io.stdout
             )
