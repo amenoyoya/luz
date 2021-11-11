@@ -78,11 +78,12 @@ function unz_uncompress(zip, dir, password)
     if unz == nil then return false end
     repeat
         local info = unz:info(true, password)
-        if info == nil then return false end
+        if info == nil then error"failed to get information of local file" end
         
         local file = fs.open(fs.path.append_slash(dir) .. info.filename, "wb")
-        if file == nil then return false end
+        if file == nil then error"failed to open extracted file" end
         file:write(info.content, info.uncompressed_size)
+        file:close()
     until not unz:locate_next()
     unz:close()
     return true
@@ -95,11 +96,10 @@ print"uncompress: ./❓source.zip => ./❗extracted/src/"
 assert(unz_uncompress("./❓source.zip", "./❗extracted/src/", "password"))
 
 local dir = "./❗extracted/src/"
--- for _, file in ipairs(fs.enumfiles(dir)) do
---     print("1", fs.readfile(file.path))
---     print("2", fs.readfile("../src/" .. file.path:sub(dir:len() + 1)))
---     print("✅", file.path)
--- end
+for _, file in ipairs(fs.enumfiles(dir)) do
+    assert(fs.readfile(file.path) == fs.readfile("../src/" .. file.path:sub(dir:len() + 1)))
+    print("✅", file.path)
+end
 
 assert(fs.rmfile"❓source.zip")
-assert(fs.rmdir(dir))
+assert(fs.rmdir"./❗extracted")

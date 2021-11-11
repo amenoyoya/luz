@@ -22,8 +22,6 @@ bool path_isfile(const char *path);
 bool path_isdir(const char *path);
 const char *path_complete(char *dest, const char *path);
 void path_stat(path_stat_t *dest, const char *path);
-const char *path_append_slash(char *dest, const char *path);
-const char *path_remove_slash(char *dest, const char *path);
 
 struct FILE *fs_fopen(const char *filename, const char *mode);
 struct FILE *fs_popen(const char *procname, const char *mode);
@@ -117,14 +115,20 @@ end
 
 -- Append slash symbol into the end of path
 function fs.path.append_slash(path)
-    local dest = ffi.new("char[?]", path:len() + 2)
-    return ffi.string(ffi.C.path_append_slash(dest, path))
+    local last = path:sub(-1)
+    if last ~= "/" and last ~= "\\" then
+        return path .. (ffi.os == "Windows" and "\\" or "/")
+    end
+    return path
 end
 
 -- Remove slash symbol from the end of path
 function fs.path.remove_slash(path)
-    local dest = ffi.new("char[?]", path:len() + 1)
-    return ffi.string(ffi.C.path_remove_slash(dest, path))
+    local last = path:sub(-1)
+    if last == "/" or last == "\\" then
+        return path.sub(1, -2)
+    end
+    return path
 end
 
 -- Copy file
