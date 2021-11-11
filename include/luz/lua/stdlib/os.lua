@@ -42,6 +42,6 @@ end
 
 -- Get current working directory
 function os.getcwd()
-    local dest = ffi.new("char[1025]")
+    local dest = ffi.new("char[1025]", {})
     return ffi.string(ffi.C.os_getcwd(dest, 1024))
 end

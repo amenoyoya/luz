@@ -56,6 +56,9 @@ bool unz_content(unz_archiver_t *self, char *dest, size_t datasize, const char *
 bool unz_pos(unz_archiver_t *self, unz_file_pos_t *dest);
 bool unz_locate(unz_archiver_t *self, unz_file_pos_t *pos);
 size_t unz_offset(unz_archiver_t *self);
+bool unz_rmdata(const char *filename);
+bool zip_compress(const char *dir, const char *output, unsigned short level, const char *password, const char *mode, const char *root);
+bool unz_uncompress(const char *zip, const char *dir, const char *password);
 ]]
 
 --- ZipArchiver ---
@@ -109,7 +112,6 @@ local zip_archiver = {
 -- @param {number} compresslevel: 0(default) - 9
 -- @returns {zip_archiver|nil}
 function fs.zip.open(filename, mode, compresslevel)
-    print(ffi.C.zip_open)
     local archiver = setmetatable(
         {
             handler = ffi.gc(ffi.C.zip_open(filename, mode or "w", compresslevel or 0), ffi.C.zip_close)
@@ -117,7 +119,6 @@ function fs.zip.open(filename, mode, compresslevel)
             __index = zip_archiver
         }
     )
-    print(archiver)
     return archiver.handler and archiver or nil
 end
 
@@ -163,16 +164,16 @@ local zip_extractor = {
         if not ffi.C.unz_info(self.handler, info, nil, 0, nil, 0) then return nil end
 
         -- get the file name and comment
-        local filename = ffi.new("char[?]", info.filename_size)
-        local comment = ffi.new("char[?]", info.comment_size)
+        local filename = ffi.new("char[?]", info.filename_size + 1) -- +1 buffer for the end of string null pointer
+        local comment = ffi.new("char[?]", info.comment_size + 1) -- +1 buffer for the end of string null pointer
         if not ffi.C.unz_info(self.handler, info, filename, info.filename_size, comment, info.comment_size) then return nil end
 
         -- get the file content
         local content = nil
         if isContentRequired then
-            local data = ffi.new("char[?]", info.uncompressed_size)
+            local data = ffi.new("char[?]", info.uncompressed_size + 1) -- +1 buffer for the end of string null pointer
             if not ffi.C.unz_content(self.handler, data, info.uncompressed_size, password) then return nil end
-            content = ffi.string(data)
+            content = ffi.string(data, info.uncompressed_size)
         end
         
         return {
@@ -245,40 +246,7 @@ end
 -- @param {string} filename
 -- @returns {boolean}
 function fs.unz.rmdata(filename)
-    local arc = fs.unz.open(filename)
-    if arc == nil then return false end
-    
-    -- copy the file data except the zip field
-    local file = fs.open(filename, "rb")
-    local size = file:size() - arc:size()
-    local bin = file:read(size)
-    -- overwrite
-    file:close()
-    file = fs.open(filename, "wb")
-    local result = 0 < file:write(bin, size)
-    file:close()
-    return result
-end
-
--- @private Compress the directory (base)
-local function compress(zip, dirPath, baseDirLen, password, rootDir)
-    local f = fs.opendir(dirPath)
-    
-    if f == nil then return false end
-    repeat
-        if f:name() ~= "." and f:name() == ".." then
-            local path = f:path()
-            if fs.path.isdir(path) then
-                -- process recursively
-                if not compress(zip, path, baseDirLen, password, rootDir) then return false end
-            elseif fs.path.isfile(path) then
-                -- append file into zip
-                if not zip:append_file(path, rootDir .. path:sub(baseDirLen + 1), password) then return false end
-            end
-        end
-    until not f:seek()
-    f:close()
-    return true
+    return ffi.C.unz_rmdata(filename)
 end
 
 -- Compress the directory to zip
@@ -290,18 +258,7 @@ end
 -- @param {string} root: root of local file path in the zip (default: "")
 -- @returns {boolean}
 function fs.zip.compress(dir, output, level, password, mode, root)
-    if not fs.path.isdir(dir) then return false end
-
-    print(dir, output, level, password, mode, root)
-    local zip = fs.zip.open(output, mode, level)
-    if zip == nil then
-        print("cannot open zip")
-        return false
-    end
-
-    -- local result = compress(zip, dir, fs.path.append_slash(dir):len(), password, root and fs.path.append_slash(root) or "")
-    -- zip:close()
-    -- return result
+    return ffi.C.zip_compress(dir, output, level or 0, password, mode or "w", root or "")
 end
 
 -- Uncompress the zip into directory
@@ -310,16 +267,5 @@ end
 -- @param {string|nil} password (default: nil)
 -- @returns {boolean}
 function fs.unz.uncompress(zip, dir, password)
-    local unz = fs.unz.open(zip)
-    if unz == nil then return false end
-    repeat
-        local info = unz:info(true, password)
-        if info == nil then return false end
-        
-        local file = fs.open(fs.path.append_slash(dir) .. info.filename, "wb")
-        if file == nil then return false end
-        file:write(info.content, info.uncompressed_size)
-    until not unz:locate_next()
-    unz:close()
-    return true
+    return ffi.C.unz_uncompress(zip, dir, password)
 end

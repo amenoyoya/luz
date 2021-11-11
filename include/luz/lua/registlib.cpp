@@ -42,19 +42,19 @@ static bool exec_lua_buffer(sol::state &lua, const char *buffer, size_t bufferSi
 
 /// @private register lua extended standard libraries
 static bool regist_lua_stdlib(sol::state &lua, std::string *errorMessage) {
-    if (!exec_lua_buffer(lua, (const char *)table_lib_code, sizeof(table_lib_code), "@stdlib://table", errorMessage)) return false;
-    if (!exec_lua_buffer(lua, (const char *)string_lib_code, sizeof(string_lib_code), "@stdlib://string", errorMessage)) return false;
-    if (!exec_lua_buffer(lua, (const char *)os_lib_code, sizeof(os_lib_code), "@stdlib://os", errorMessage)) return false;
-    if (!exec_lua_buffer(lua, (const char *)filesystem_lib_code, sizeof(filesystem_lib_code), "@stdlib://filesystem", errorMessage)) return false;
-    if (!exec_lua_buffer(lua, (const char *)zip_lib_code, sizeof(zip_lib_code), "@stdlib://zip", errorMessage)) return false;
-    if (!exec_lua_buffer(lua, (const char *)lpeg_lib_code, sizeof(lpeg_lib_code), "@stdlib://lpeg", errorMessage)) return false;
-
     /// oberload `debug.debug()`: call lua_dotty
     auto debug = lua["debug"].get_or_create<sol::table>();
     debug["debug"].set_function(sol::overload(
         [&lua](const std::string &progname) { lua_dotty(lua, progname); },
         [&lua]() { lua_dotty(lua); }
     ));
+
+    if (!exec_lua_buffer(lua, (const char *)table_lib_code, sizeof(table_lib_code), "@stdlib://table", errorMessage)) return false;
+    if (!exec_lua_buffer(lua, (const char *)string_lib_code, sizeof(string_lib_code), "@stdlib://string", errorMessage)) return false;
+    if (!exec_lua_buffer(lua, (const char *)os_lib_code, sizeof(os_lib_code), "@stdlib://os", errorMessage)) return false;
+    if (!exec_lua_buffer(lua, (const char *)filesystem_lib_code, sizeof(filesystem_lib_code), "@stdlib://filesystem", errorMessage)) return false;
+    if (!exec_lua_buffer(lua, (const char *)zip_lib_code, sizeof(zip_lib_code), "@stdlib://zip", errorMessage)) return false;
+    if (!exec_lua_buffer(lua, (const char *)lpeg_lib_code, sizeof(lpeg_lib_code), "@stdlib://lpeg", errorMessage)) return false;
     return true;
 }
 

@@ -96,23 +96,35 @@ function fs.path.complete(path)
 end
 
 -- Get the file / directory state
--- @returns {cdata<path_stat_t*>}
+-- @returns {table<path_stat_t>}
 function fs.path.stat(path)
     local stat = ffi.new("path_stat_t")
     ffi.C.path_stat(stat, path)
-    return stat
+    return {
+        device_id = stat.device_id,
+        inode = stat.inode,
+        access_mode = stat.access_mode,
+        nlinks = stat.nlinks,
+        user_id = stat.user_id,
+        group_id = stat.group_id,
+        special_device_id = stat.special_device_id,
+        size = stat.size,
+        last_accessed_seconds = stat.last_accessed_seconds,
+        last_modified_seconds = stat.last_modified_seconds,
+        last_changed_seconds = stat.last_changed_seconds,
+    }
 end
 
 -- Append slash symbol into the end of path
 function fs.path.append_slash(path)
     local dest = ffi.new("char[?]", path:len() + 2)
-    return ffi.C.path_append_slash(dest, path)
+    return ffi.string(ffi.C.path_append_slash(dest, path))
 end
 
 -- Remove slash symbol from the end of path
 function fs.path.remove_slash(path)
     local dest = ffi.new("char[?]", path:len() + 1)
-    return ffi.C.path_remove_slash(dest, path)
+    return ffi.string(ffi.C.path_remove_slash(dest, path))
 end
 
 -- Copy file
@@ -198,15 +210,16 @@ local filerw = {
     -- @returns {string}
     read = function (self, size)
         local data = ffi.new("char[?]", size + 1)
-        return 0 < ffi.C.fread(data, 1, size, self.handler) and ffi.string(data) or ""
+        local read = ffi.C.fread(data, 1, size, self.handler)
+        return read > 0 and ffi.string(data, read) or ""
     end,
     
     -- Write data
     -- @param {string} data
-    -- @param {number} size: writing size (default: data:len())
+    -- @param {number} size: writing size (default: strlen(data))
     -- @returns {number} written size
     write = function (self, data, size)
-        return ffi.C.fwrite(ffi.cast("char*", data), 1, size or data:len(), self.handler)
+        return ffi.C.fwrite(ffi.cast("const char*", data), 1, size or data:len(), self.handler)
     end,
     
     -- Write 1 byte
@@ -269,7 +282,10 @@ end
 -- Read all data in the file
 function fs.readfile(filename, size)
     local file = fs.open(filename, "rb")
-    local data = file and file:read(size or file:size()) or ""
+    if file == nil then return "" end
+    
+    size = size or file:size()
+    local data = file:read(size)
     file:close()
     return data
 end
@@ -277,7 +293,9 @@ end
 -- Write data to the file
 function fs.writefile(filename, data, size)
     local file = fs.open(filename, "wb")
-    local written = file and file:write(data, size) or 0
+    if file == nil then return "" end
+
+    local written = file:write(data, size)
     file:close()
     return written
 end

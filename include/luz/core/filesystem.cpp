@@ -155,11 +155,13 @@ extern "C" {
             if (dirent->current_name != "." && dirent->current_name != "..") {
                 if (path_isdir(dirent->current_path)) { // remove directory recursively
                     if (!fs_rmdir(dirent->current_path.c_str())) {
+                        _fputs(stderr, dirent->current_path + " failed to remove");
                         fs_closedir(dirent);
                         return false;
                     }
                 } else { // remove file
                     if (!fs_rmfile(dirent->current_path.c_str())) {
+                        _fputs(stderr, dirent->current_path + " failed to remove");
                         fs_closedir(dirent);
                         return false;
                     }

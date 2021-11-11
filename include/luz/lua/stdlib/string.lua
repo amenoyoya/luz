@@ -114,6 +114,7 @@ ffi.cdef[[
 void io_setu16mode(struct FILE *fp); // Windows only
 bool u8towcs(wchar_t *dest, const char *source, size_t size);
 bool wcstou8(char *dest, const wchar_t *source, size_t size);
+size_t wcslen(const wchar_t *str);
 int fputws(const wchar_t *str, struct FILE *fp);
 wchar_t *fgetws(wchar_t *dest, size_t n, struct FILE *fp);
 ]]
@@ -129,16 +130,14 @@ end
 function string:u8towcs()
     local size = self:len()
     local dest = ffi.new("wchar_t[?]", size + 1) -- +1 buffer for the end of null pointer
-    ffi.C.u8towcs(dest, self, size)
-    return dest
+    return ffi.C.u8towcs(dest, self, size) and dest or nil
 end
 
 -- Wide string (UTF-16) to UTF-8 string
 function string.wcstou8(src)
-    local size = ffi.sizeof(src)
+    local size = ffi.C.wcslen(src) * 3 -- 1 char of utf8: max 3 byte
     local dest = ffi.new("char[?]", size + 1) -- +1 buffer for the end of null pointer
-    ffi.C.wcstou8(src, dest, size)
-    return ffi.string(dest)
+    return ffi.C.wcstou8(dest, src, size) and ffi.string(dest) or nil
 end
 
 -- Flag for serialization when printing table
@@ -155,7 +154,10 @@ function print(...)
         for i = 1, n do
             ffi.C.fputws(
                 string.u8towcs(
-                    (i == 1 and "" or "\t") .. ((type(list[i]) == 'table' and table.print_flag) and table.serialize(list[i], 2, true) or (tostring(list[i])) or "nil")
+                    (i == 1 and "" or "\t") .. (
+                        (type(list[i]) == 'table' and table.print_flag) and table.serialize(list[i], 2, true)
+                        or (list[i] == nil and "nil" or tostring(list[i]))
+                    )
                 ),
                 io.stdout
             )
