@@ -106,7 +106,7 @@ lpeg.parse = function(pattern, subject)
         local fin, repl, next = p:match(subject, cur)
         
         if repl then -- replace source string if the argument 2 is designated
-            subject = subject:replace(cur, fin-1, repl)
+            subject = subject:replace(cur, fin - 1, repl)
             len = subject:len()
             if next then -- set next analyzing index to the designated argument 3
                 cur = next

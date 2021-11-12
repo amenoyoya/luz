@@ -331,6 +331,7 @@ local enumerator = {
 } 
 
 -- Open directory
+-- @param {string} dir
 -- @returns {eumerator|nil}
 function fs.opendir(dir)
     local dirent = setmetatable({}, {__index = enumerator})
@@ -338,44 +339,51 @@ function fs.opendir(dir)
     return dirent.handler and dirent or nil
 end
 
--- @private Enumerate files / directories base function
-local function enumfiles(dest, dir, nest, mode)
-    if nest == 0 then return dest end
-    
+-- Scan directory
+-- @param {string} dir
+-- @param {function(name string, path string, ...)->boolean} callback
+-- @param {...} extra arguments for the callback function
+-- @returns {boolean}
+function fs.scandir(dir, callback, ...)
     local dirent = fs.opendir(dir)
-    if dirent == nil then return dest end
-
+    if dirent == nil then return false end
     repeat
-        local name = dirent:readname()
-        if name ~= ".." and name ~= "." then
-            local path = dirent:readpath()
-            local info = {
-                path = path,
-                isfile = fs.path.isfile(path),
-                isdir = fs.path.isdir(path),
-            }
-            if info.isfile then
-                if mode ~= "dir" then
-                    dest[#dest + 1] = info
-                end
-            elseif info.isdir then
-                if mode ~= "file" then
-                    dest[#dest + 1] = info
-                end
-                enumfiles(dest, info.path, nest - 1, mode)
-            end
+        if not callback(dirent:readname(), dirent:readpath(), ...) then
+            dirent:close()
+            return false
         end
     until not dirent:seek()
-
     dirent:close()
-    return dest
+    return true
+end
+
+-- @private Enumerate files / directories base function
+local function enumfiles(name, path, dest, nest, mode)
+    if name == ".." or name == "." then return true end
+    local info = {
+        path = path,
+        isfile = fs.path.isfile(path),
+        isdir = fs.path.isdir(path),
+    }
+    if info.isfile then
+        if mode ~= "dir" then
+            dest[#dest + 1] = info
+        end
+    elseif info.isdir then
+        if mode ~= "file" then
+            dest[#dest + 1] = info
+        end
+        return nest ~= 0 and fs.scandir(info.path, enumfiles, dest, nest - 1, mode) or true
+    end
+    return true
 end
 
 -- Enumerate files / directories in the directory
 -- @param {string} dir: target directory
 -- @param {number} nest: recursive enumeration nest (default: -1 => infite), 0 => no enumeration
 -- @param {string} mode: "all"(default) | "file" | "dir"
+-- @returns {table[]} {name: string, path: string, isfile: boolean, isdir: boolean}[]
 function fs.enumfiles(dir, nest, mode)
     local files = {}
-    return enumfiles(files, dir, nest == nil and -1 or nest, mode or "all")
+    return fs.scandir(dir, enumfiles, files, nest == nil and -1 or nest, mode or "all") and files or {}
 end

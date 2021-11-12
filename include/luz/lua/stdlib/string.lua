@@ -109,7 +109,60 @@ function utf8.bsize(c)
 end
 
 
--- ffi functions
+--- String replacer ---
+-- @private Replace the part of [head] - [tail] into `repl` string
+-- @param {string} str: Target string
+-- @param {number} head
+-- @param {number} tail
+-- @param {string} repl: Replaced to this string
+-- @param {function} sub: string.sub | string.u8sub 
+local function replacestr(str, head, tail, repl, sub)
+    return sub(str, 1, head - 1) .. repl .. sub(str, tail + 1)
+end
+
+-- @private Replace the matched `old` string into `new` string
+-- @param {number} start (default: 1): Search start index
+-- @param {boolean} usepatt (default: false): Is required to use pattern matching
+-- @param {function} find: string.find | string.u8find 
+-- @param {function} sub: string.sub | string.u8sub 
+local function updatestr(str, old, new, start, usepatt, find, sub)
+    local head, tail = find(str, old, start or 1, not (usepatt))
+    if head and tail then return replacestr(str, head, tail, new, sub) end
+    return str
+end
+
+-- Replace string
+-- @usage string:replace(head number, tail number, repl string) -> string: Replace the part of [head] - [tail] into `repl` string
+-- @usage string:replace(old string, new string, start number, usepatt boolean) -> string: Replace the matched `old` string into `new` string
+function string:replace(var1, var2, var3, var4)
+    if type(var1) == 'number' and type(var2) == 'number' then
+        return replacestr(self, var1, var2, var3, string.sub)
+    end
+    if type(var1) == 'string' then
+        return updatestr(self, var1, var2, var3, var4, string.find, string.sub)
+    end
+    error(
+        "function 'string.replace' requires arguments\n"
+        .."(string, number, number, string)\n\tor\n(string, string, string [,number, boolean])"
+    )
+end
+
+-- Replace UTF-8 string
+function string:u8replace(var1, var2, var3, var4)
+    if type(var1) == 'number' and type(var2) == 'number' then
+        return replacestr(self, var1, var2, var3, string.u8sub)
+    end
+    if type(var1) == 'string' then
+        return updatestr(self, var1, var2, var3, var4, string.u8find, string.u8sub)
+    end
+    error(
+        "function 'string.u8replace' requires arguments\n"
+        .."(string, number, number, string)\n\tor\n(string, string, string [,number, boolean])"
+    )
+end
+
+
+--- ffi functions ---
 ffi.cdef[[
 void io_setu16mode(struct FILE *fp); // Windows only
 bool u8towcs(wchar_t *dest, const char *source, size_t size);
