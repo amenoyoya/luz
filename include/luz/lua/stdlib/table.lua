@@ -75,6 +75,18 @@ function table.slice(self, from, to)
     return new
 end
 
+-- Find element value in the table
+-- @param {any} val: Search target value
+--                   If you designate function, return value matching val(v: any) == true
+-- @returns {any|nil} Matched index
+function table.find(self, val)
+    local f = type(val) == "function" and val or function(v) return v == val end
+    for k, v in ipairs(self) do
+      if f(v) then return k end
+    end
+    return nil
+end
+
 
 --- Serialize ---
 local escape_char_map = {

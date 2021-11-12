@@ -20,6 +20,7 @@ local function compile(infile, outfile, chunkname)
     fh:close()
 end
 
+compile("core.lua", "core.cpp", "@stdlib://core")
 compile("table.lua", "table.cpp", "@stdlib://table")
 compile("string.lua", "string.cpp", "@stdlib://string")
 compile("os.lua", "os.cpp", "@stdlib://os")
@@ -29,10 +30,11 @@ compile("lpeg.lua", "lpeg.cpp", "@stdlib://lpeg")
 
 -- loading order of libraries
 --[[
-    1. table
-    2. string
-    3. os
-    4. filesystem
-    5. zip
-    6. lpeg
+    1. core
+    2. table
+    3. string
+    4. os
+    5. filesystem
+    6. zip
+    7. lpeg
 ]]

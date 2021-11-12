@@ -12,11 +12,13 @@ const char *os_getcwd(char *dest, size_t size);
 
 -- Execute OS command
 function os.execute(cmd)
+    debug.checkarg(cmd, "string")
     return ffi.C.os_execute(cmd)
 end
 
 -- Sleep process [milli seconds]
 function os.sleep(msec)
+    debug.checkarg(msec, "number")
     return ffi.C.os_sleep(msec)
 end
 
@@ -27,16 +29,19 @@ end
 
 -- Set system environmental variable
 function os.setenv(name, val)
+    debug.checkarg(name, "string", val, "string")
     return ffi.C.os_setenv(name, val)
 end
 
 -- Get system environemtal variable
 function os.getenv(name)
+    debug.checkarg(name, "string")
     return ffi.string(ffi.C.os_getenv(name))
 end
 
 -- Set current working directory
 function os.setcwd(dir)
+    debug.checkarg(dir, "string")
     return ffi.C.os_setcwd(dir)
 end
 

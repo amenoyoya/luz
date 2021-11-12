@@ -19,5 +19,5 @@ call miniluz.exe bundle.lua
 del *.obj
 del *.lib
 del *.exp
-@REM move miniluz.exe ..\dist\bin\x86\
-@REM move luz.exe ..\dist\bin\x86\
+move miniluz.exe ..\dist\bin\x86\
+move luz.exe ..\dist\bin\x86\

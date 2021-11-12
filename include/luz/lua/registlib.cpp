@@ -8,7 +8,9 @@
 #include "lpeg-1.0.0/lpvm.c"
 
 /* Lua extended standard libraries */
-static unsigned char table_lib_code[] = {
+static unsigned char core_lib_code[] = {
+    #include "stdlib/core.cpp"
+}, table_lib_code[] = {
     #include "stdlib/table.cpp"
 }, string_lib_code[] = {
     #include "stdlib/string.cpp"
@@ -49,6 +51,7 @@ static bool regist_lua_stdlib(sol::state &lua, std::string *errorMessage) {
         [&lua]() { lua_dotty(lua); }
     ));
 
+    if (!exec_lua_buffer(lua, (const char *)core_lib_code, sizeof(core_lib_code), "@stdlib://core", errorMessage)) return false;
     if (!exec_lua_buffer(lua, (const char *)table_lib_code, sizeof(table_lib_code), "@stdlib://table", errorMessage)) return false;
     if (!exec_lua_buffer(lua, (const char *)string_lib_code, sizeof(string_lib_code), "@stdlib://string", errorMessage)) return false;
     if (!exec_lua_buffer(lua, (const char *)os_lib_code, sizeof(os_lib_code), "@stdlib://os", errorMessage)) return false;

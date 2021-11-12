@@ -52,6 +52,7 @@ const char *fs_readdir_path(struct fs_dirent_t *self);
 -- Get the base name of path
 -- @param {string} path: e.g. "/path/to/sample.txt" => "sample.txt"
 function fs.path.basename(path)
+    debug.checkarg(path, "string")
     local dest = ffi.new("char[?]", path:len() + 1)
     return ffi.string(ffi.C.path_basename(dest, path))
 end
@@ -59,6 +60,7 @@ end
 -- Get the base name of path (without extension)
 -- @param {string} path: e.g. "/path/to/sample.txt" => "sample"
 function fs.path.stem(path)
+    debug.checkarg(path, "string")
     local dest = ffi.new("char[?]", path:len() + 1)
     return ffi.string(ffi.C.path_stem(dest, path))
 end
@@ -66,6 +68,7 @@ end
 -- Get the extension of path
 -- @param {string} path: e.g. "/path/to/sample.txt" => ".txt"
 function fs.path.ext(path)
+    debug.checkarg(path, "string")
     local dest = ffi.new("char[?]", path:len() + 1)
     return ffi.string(ffi.C.path_ext(dest, path))
 end
@@ -73,22 +76,26 @@ end
 -- Get the parent directory of path
 -- @param {string} path: e.g. "/path/to/sample.txt" => "/path/to"
 function fs.path.parentdir(path)
+    debug.checkarg(path, "string")
     local dest = ffi.new("char[?]", path:len() + 1)
     return ffi.string(ffi.C.path_parentdir(dest, path))
 end
 
 -- Identifies if the path is file
 function fs.path.isfile(path)
+    debug.checkarg(path, "string")
     return ffi.C.path_isfile(path)
 end
 
 -- Identifies if the path is directory
 function fs.path.isdir(path)
+    debug.checkarg(path, "string")
     return ffi.C.path_isdir(path)
 end
 
 -- Get the full path
 function fs.path.complete(path)
+    debug.checkarg(path, "string")
     local dest = ffi.new("char[?]", 1024)
     return ffi.string(ffi.C.path_complete(dest, path))
 end
@@ -96,6 +103,7 @@ end
 -- Get the file / directory state
 -- @returns {table<path_stat_t>}
 function fs.path.stat(path)
+    debug.checkarg(path, "string")
     local stat = ffi.new("path_stat_t")
     ffi.C.path_stat(stat, path)
     return {
@@ -115,6 +123,7 @@ end
 
 -- Append slash symbol into the end of path
 function fs.path.append_slash(path)
+    debug.checkarg(path, "string")
     local last = path:sub(-1)
     if last ~= "/" and last ~= "\\" then
         return path .. (ffi.os == "Windows" and "\\" or "/")
@@ -124,6 +133,7 @@ end
 
 -- Remove slash symbol from the end of path
 function fs.path.remove_slash(path)
+    debug.checkarg(path, "string")
     local last = path:sub(-1)
     if last == "/" or last == "\\" then
         return path.sub(1, -2)
@@ -133,31 +143,37 @@ end
 
 -- Copy file
 function fs.copyfile(src, dest, isOverwrite)
+    debug.checkarg(src, "string", dest, "string")
     return ffi.C.fs_copyfile(src, dest, isOverwrite == nil and true or isOverwrite)
 end
 
 -- Remove file
 function fs.rmfile(filename)
+    debug.checkarg(filename, "string")
     return ffi.C.fs_rmfile(filename)
 end
 
 -- Create directory (recursively)
 function fs.mkdir(dir)
+    debug.checkarg(dir, "string")
     return ffi.C.fs_mkdir(dir)
 end
 
 -- Copy directory
 function fs.copydir(src, dest)
+    debug.checkarg(src, "string", dest, "string")
     return ffi.C.fs_copydir(src, dest)
 end
 
 -- Remove directory
 function fs.rmdir(dir)
+    debug.checkarg(dir, "string")
     return ffi.C.fs_rmdir(dir)
 end
 
 -- Rename (Move) file / directory
 function fs.rename(src, dest, isOverwrite)
+    debug.checkarg(src, "string", dest, "string")
     return ffi.C.fs_rename(src, dest, isOverwrite == nil and true or isOverwrite)
 end
 
@@ -213,6 +229,7 @@ local filerw = {
     -- @param {number} size: reading size
     -- @returns {string}
     read = function (self, size)
+        debug.checkarg(size, "number")
         local data = ffi.new("char[?]", size + 1)
         local read = ffi.C.fread(data, 1, size, self.handler)
         return read > 0 and ffi.string(data, read) or ""
@@ -223,6 +240,7 @@ local filerw = {
     -- @param {number} size: writing size (default: strlen(data))
     -- @returns {number} written size
     write = function (self, data, size)
+        debug.checkarg(data, "string")
         return ffi.C.fwrite(ffi.cast("const char*", data), 1, size or data:len(), self.handler)
     end,
     
@@ -230,6 +248,7 @@ local filerw = {
     -- @param {number} c: byte-code
     -- @returns {boolean}
     writechar = function (self, c)
+        debug.checkarg(c, "number")
         return fs.eof ~= ffi.C.fputc(c, self.handler)
     end,
     
@@ -238,6 +257,7 @@ local filerw = {
     -- @param {numbedr} from: fs.seek_from.* (default: fs.seek_from.head)
     -- @returns {boolean}
     seek = function (self, offset, from)
+        debug.checkarg(offset, "number")
         return 0 == ffi.C.fseek(self.handler, offset, from or fs.seek_from.head)
     end,
     
@@ -261,8 +281,9 @@ local filerw = {
 --                       If the mode is write-mode, parent directories will be created automatically
 -- @returns {filerw|nil}
 function fs.open(filename, mode)
+    debug.checkarg(filename, "string")
+
     local file = setmetatable({}, {__index = filerw})
-    
     mode = mode or "rb"
     -- pipe-mode
     if mode:match"^p" then
@@ -285,6 +306,8 @@ end
 
 -- Read all data in the file
 function fs.readfile(filename, size)
+    debug.checkarg(filename, "string")
+
     local file = fs.open(filename, "rb")
     if file == nil then return "" end
     
@@ -296,6 +319,8 @@ end
 
 -- Write data to the file
 function fs.writefile(filename, data, size)
+    debug.checkarg(filename, "string", data, "string")
+
     local file = fs.open(filename, "wb")
     if file == nil then return "" end
 
@@ -334,6 +359,7 @@ local enumerator = {
 -- @param {string} dir
 -- @returns {eumerator|nil}
 function fs.opendir(dir)
+    debug.checkarg(dir, "string")
     local dirent = setmetatable({}, {__index = enumerator})
     dirent.handler = ffi.gc(ffi.C.fs_opendir(dir), ffi.C.fs_closedir)
     return dirent.handler and dirent or nil
@@ -345,6 +371,7 @@ end
 -- @param {...} extra arguments for the callback function
 -- @returns {boolean}
 function fs.scandir(dir, callback, ...)
+    debug.checkarg(dir, "string", callback, "function")
     local dirent = fs.opendir(dir)
     if dirent == nil then return false end
     repeat
