@@ -1,8 +1,9 @@
 ﻿assert(os.setcwd(package.__dir))
 print("current working directory:", os.getcwd())
-print("current script file:", package.__chunk, fs.path.stat(package.__chunk))
+print("current script file:", package.__file, fs.path.stat(package.__file))
+print("invalid file state:", fs.path.stat"invalid?file!")
 
-assert(fs.copyfile(package.__chunk, "✅copied/test.lua"))
+assert(fs.copyfile(package.__file, "✅copied/test.lua"))
 assert(fs.copydir("✅copied", "❗party"))
 assert(fs.rename("✅copied", "❗party/✨subdir"))
 
@@ -16,7 +17,7 @@ end
 
 assert(#fs.enumfiles"❗party" == 0)
 
-print("this file:", fs.readfile(package.__chunk))
+print("this file:", fs.readfile(package.__file))
 print("write bytes:", fs.writefile("⭐", "⭐🌍🌛"))
 
 local file = fs.open("⭐")

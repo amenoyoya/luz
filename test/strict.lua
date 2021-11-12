@@ -10,19 +10,20 @@ local function typesame(typename, types)
 end
 
 -- Type checker for function arguments
-function debug.checkarg(...)
+local function checkarg(n, ...)
     local funcname = debug.getinfo(2, "n").name
     local args = {...}
-    for i = 1, #args - 1, 2 do
+    -- ipairs can't scan all elements if the list is like {1, nil, 3} (scan only 1)
+    for i = 1, n * 2 - 1, 2 do
         local t = type(args[i])
         if not typesame(t, args[i + 1]) then
-            errorf(
+            error(string.format(
                 "function argument type error: '%s' argument %d expected %s, but got %s",
                 funcname,
                 math.floor((i - 1) / 2) + 1,
                 args[i + 1],
                 t
-            )
+            ))
         end
     end
 end
@@ -30,15 +31,19 @@ end
 -- Test
 local test = {
     hello = function (str)
-        debug.checkarg(str, "string")
+        checkarg(1, str, "string")
         print(str)
     end,
+    fmt = function (stdout, format, ...)
+        checkarg(2, stdout, "cdata|userdata", format, "string")
+        ffi.C.fputws(format:format(...):u8towcs(), stdout)
+    end,
     add = function (a, b)
-        debug.checkarg(a, "string|number", b, "string|number")
+        checkarg(2, a, "string|number", b, "string|number")
         return type(a) == "number" and a + tonumber(b) or a .. tostring(b)
     end,
     print = function (str)
-        debug.checkarg(str, "any")
+        checkarg(1, str, "any")
         print(str)
     end,
 }
@@ -46,6 +51,13 @@ local test = {
 local _, err = pcall(function()
     test.hello"Check start !"
     test.hello(nil)
+end)
+
+if err then eprint(err) end
+
+_, err = pcall(function()
+    test.fmt(io.stdout, "%d\n", 10)
+    test.fmt(io.stderr, nil, 10)
 end)
 
 if err then eprint(err) end

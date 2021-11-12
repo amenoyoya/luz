@@ -5,20 +5,12 @@
 #define LUA_MAXINPUT 512  /* Max. input line length. */
 
 inline void write_stdout(const std::string &message) {
-    #ifdef _WINDOWS
-        fputws(u8towcs(message).c_str(), stdout);
-    #else
-        fputs(message.c_str(), stdout);
-    #endif
+    fputws(u8towcs(message).c_str(), stdout);
     fflush(stdout);
 }
 
 inline void write_stderr(const std::string &message) {
-    #ifdef _WINDOWS
-        fputws(u8towcs(message).c_str(), stderr);
-    #else
-        fputs(message.c_str(), stderr);
-    #endif
+    fputws(u8towcs(message).c_str(), stderr);
     fflush(stderr);
 }
 

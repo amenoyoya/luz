@@ -189,6 +189,9 @@ end
 
 --- Class definition function ---
 
+-- @memo OOP using setmetatable may be slow
+-- @see https://github.com/kengonakajima/lua-oo-speedcomp
+
 --[[
 -- Define new class `App`
 App = class {

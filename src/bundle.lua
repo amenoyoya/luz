@@ -24,38 +24,8 @@ if arc == nil then
     errorf("failed to open '%s' as zip archive", luz)
 end
 
--- append lua scripts as resource
--- local function scandir(dir, callback, ...)
---     local dirent = fs.opendir(dir)
---     if dirent == nil then return false end
---     repeat
---         if not callback(dirent:readname(), dirent:readpath(), ...) then
---             dirent:close()
---             return false
---         end
---     until not dirent:seek()
---     dirent:close()
---     return true
--- end
-
--- function _enumfiles(name, path, files)
---     if name == '.' or name == '..' then return true end
---     local info = {
---         name = name, path = path, isfile = fs.path.isfile(path), isdir = fs.path.isdir(path)
---     }
---     files[#files + 1] = info
---     if info.isdir then return scandir(path, _enumfiles, files) end
---     return true
--- end
-
--- local function enumfiles(dir)
---     local files = {}
---     return scandir(dir, _enumfiles, files) and files or {}
--- end
-
 local dir = package.__dir .. "/resource"
-local files = fs.enumfiles(dir) -- if use this, will be crashed!
--- local files = enumfiles(dir)
+local files = fs.enumfiles(dir)
 
 for _, file in ipairs(files) do
     if fs.path.ext(file.path) == ".lua" then

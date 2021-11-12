@@ -42,7 +42,7 @@ extern "C" {
     __export const char *path_complete(char *dest, const char *path);
 
     /// get the file / directory status
-    __export void path_stat(path_stat_t *dest, const char *path);
+    __export bool path_stat(path_stat_t *dest, const char *path);
 
     /// append '/' or '\\' to the end
     __export const char *path_append_slash(char *dest, const char *path);

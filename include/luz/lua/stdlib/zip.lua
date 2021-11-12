@@ -62,12 +62,26 @@ bool unz_uncompress(const char *zip, const char *dir, const char *password);
 ]]
 
 --- ZipArchiver ---
-local zip_archiver = {
+local zip_archiver = class {
+    constructor = function (self, filename, mode, compresslevel)
+        debug.checkarg(1, filename, "string")
+        self.handler = ffi.C.zip_open(filename, mode or "w", compresslevel or 0)
+    end,
+
+    destructor = function (self)
+        self:close()
+    end,
+
     -- Close the archiver
     -- @param {string} comment: global comment if you want to append
     -- @returns {boolean}
     close = function (self, comment)
-        return self.handler and ffi.C.zip_close(self.handler, comment) or false
+        if self.handler ~= nil then
+            local result = ffi.C.zip_close(self.handler, comment)
+            self.handler = nil
+            return result
+        end
+        return false
     end,
 
     -- Append data into the archiver
@@ -78,7 +92,7 @@ local zip_archiver = {
     -- @param {string} comment (default: nil)
     -- @returns {boolean}
     append = function (self, data, datasize, dest_filename, password, comment)
-        debug.checkarg(data, "string", datasize, "number", dest_filename, "string")
+        debug.checkarg(3, data, "string", datasize, "number", dest_filename, "string")
         return ffi.C.zip_append(self.handler, data, datasize, dest_filename, password, comment)
     end,
 
@@ -89,7 +103,7 @@ local zip_archiver = {
     -- @param {string} comment (default: nil)
     -- @returns {boolean}
     append_file = function (self, src_filename, dest_filename, password, comment)
-        debug.checkarg(src_filename, "string", dest_filename, "string")
+        debug.checkarg(2, src_filename, "string", dest_filename, "string")
         return ffi.C.zip_append_file(self.handler, src_filename, dest_filename, password, comment)
     end,
 
@@ -114,23 +128,30 @@ local zip_archiver = {
 -- @param {number} compresslevel: 0(default) - 9
 -- @returns {zip_archiver|nil}
 function fs.zip.open(filename, mode, compresslevel)
-    debug.checkarg(filename, "string")
-    local archiver = setmetatable(
-        {
-            handler = ffi.gc(ffi.C.zip_open(filename, mode or "w", compresslevel or 0), ffi.C.zip_close)
-        }, {
-            __index = zip_archiver
-        }
-    )
-    return archiver.handler and archiver or nil
+    local archiver = zip_archiver.new(filename, mode, compresslevel)
+    -- cdata<NULL> == nil, but `if cdata<NULL> then ...` is true
+    if archiver.handler == nil then return nil end
+    return archiver
 end
 
 
 --- ZipExtractor ---
-local zip_extractor = {
+local zip_extractor = class {
+    constructor = function (self, filename)
+        debug.checkarg(1, filename, "string")
+        self.handler = ffi.C.unz_open(filename)
+    end,
+
+    destructor = function (self)
+        self:close()
+    end,
+
     -- Close the extractor
     close = function (self)
-        return self.handler and ffi.C.unz_close(self.handler)
+        if self.handler ~= nil then
+            ffi.C.unz_close(self.handler)
+            self.handler = nil
+        end
     end,
 
     -- Get global comment of the zip file
@@ -155,7 +176,7 @@ local zip_extractor = {
     -- @param {string} name
     -- @returns {boolean}
     locate_name = function (self, name)
-        debug.checkarg(name, "string")
+        debug.checkarg(1, name, "string")
         return ffi.C.unz_locate_name(self.handler, name)
     end,
 
@@ -213,7 +234,7 @@ local zip_extractor = {
     -- @param {cdata<unz_file_pos_t*>} pos
     -- @returns {boolean}
     locate = function (self, pos)
-        debug.checkarg(pos, "cdata")
+        debug.checkarg(1, pos, "cdata")
         return ffi.C.unz_locate(self.handler, pos)
     end,
 
@@ -234,15 +255,10 @@ local zip_extractor = {
 -- @param {string} filename
 -- @returns {zip_extractor|nil}
 function fs.unz.open(filename)
-    debug.checkarg(filename, "string")
-    local extractor = setmetatable(
-        {
-            handler = ffi.gc(ffi.C.unz_open(filename), ffi.C.unz_close)
-        }, {
-            __index = zip_extractor
-        }
-    )
-    return extractor.handler and extractor or nil
+    local extractor = zip_extractor.new(filename)
+    -- cdata<NULL> == nil, but `if cdata<NULL> then ...` is true
+    if extractor.handler == nil then return nil end
+    return extractor
 end
 
 
@@ -252,7 +268,7 @@ end
 -- @param {string} filename
 -- @returns {boolean}
 function fs.unz.rmdata(filename)
-    debug.checkarg(filename, "string")
+    debug.checkarg(1, filename, "string")
     return ffi.C.unz_rmdata(filename)
 end
 
@@ -265,7 +281,7 @@ end
 -- @param {string} root: root of local file path in the zip (default: "")
 -- @returns {boolean}
 function fs.zip.compress(dir, output, level, password, mode, root)
-    debug.checkarg(dir, "string", output, "string")
+    debug.checkarg(2, dir, "string", output, "string")
     return ffi.C.zip_compress(dir, output, level == nil and 0 or level, password, mode or "w", root or "")
 end
 
@@ -275,6 +291,6 @@ end
 -- @param {string|nil} password (default: nil)
 -- @returns {boolean}
 function fs.unz.uncompress(zip, dir, password)
-    debug.checkarg(zip, "string", dir, "string")
+    debug.checkarg(2, zip, "string", dir, "string")
     return ffi.C.unz_uncompress(zip, dir, password)
 end

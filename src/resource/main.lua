@@ -49,29 +49,29 @@ package.path = "?.lua;?.sym;?.tl;?/init.lua;?/init.sym;?/init.tl;" .. package.pa
 package.cpath = "?.dll;?.so;" .. package.cpath
 
 -- extended package loader: search from current application (os.arv[0]) resource
-table.insert(package.loaders, 1, function (module_name)
-    local unz = fs.unz.open(os.argv[0])
-    if unz == nil then
-        return "\n\tLuz has no resource: '" .. os.argv[0] .. "'"
-    end
+local __resource = fs.unz.open(os.argv[0])
 
+if __resource == nil then
+    return "\n\tLuz has no resource: '" .. os.argv[0] .. "'"
+end
+
+table.insert(package.loaders, 1, function (module_name)
     local error_message = ""
     module_name = module_name:gsub("%.", "/") -- "." => "/"
 
     for entry in package.path:gmatch"[^;]+" do
-        if unz:locate_name(entry:replace("?", module_name)) then
-            local info = unz:info(true)
+        local modname = entry:replace("?", module_name)
+        if __resource:locate_name(modname) then
+            local info = __resource:info(true)
 
             if info.content:len() > 0 then
-                unz:close()
                 local loader, err = load(info.content, "@luz://" .. module_name)
                 if loader == nil then error(err) end
                 return loader
             end
         end
-        error_message = error_message .. "\n\tno file 'luz://" .. module_name .. "'"
+        error_message = error_message .. "\n\tno file '" .. modname .. "' in '" .. os.argv[0] .. "' resource"
     end
-    unz:close()
     return error_message
 end)
 

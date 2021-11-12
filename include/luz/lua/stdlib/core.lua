@@ -12,19 +12,21 @@ local function typesame(typename, types)
 end
 
 -- Type checker for function arguments
-function debug.checkarg(...)
+-- @param {number} n: argument count
+function debug.checkarg(n, ...)
     local funcname = debug.getinfo(2, "n").name
     local args = {...}
-    for i = 1, #args - 1, 2 do
+    -- ipairs can't scan all elements if the list is like {1, nil, 3} (scan only 1)
+    for i = 1, n * 2 - 1, 2 do
         local t = type(args[i])
         if not typesame(t, args[i + 1]) then
-            errorf(
+            error(string.format(
                 "function argument type error: '%s' argument %d expected %s, but got %s",
                 funcname,
                 math.floor((i - 1) / 2) + 1,
                 args[i + 1],
                 t
-            )
+            ))
         end
     end
 end
@@ -43,25 +45,27 @@ wchar_t *fgetws(wchar_t *dest, size_t n, struct FILE *fp);
 if ffi.os == "Windows" then
     -- Set UTF-16 mode to the file pointer
     function io.setu16mode(fp)
-        debug.checkarg(fp, "cdata|userdata")
+        debug.checkarg(1, fp, "cdata|userdata")
         ffi.C.io_setu16mode(fp)
     end
 end
 
 -- UTF-8 string to wide string (UTF-16)
 function string:u8towcs()
-    debug.checkarg(self, "string")
+    debug.checkarg(1, self, "string")
     local size = self:len()
     local dest = ffi.new("wchar_t[?]", size + 1) -- +1 buffer for the end of null pointer
-    return ffi.C.u8towcs(dest, self, size) and dest or nil
+    ffi.C.u8towcs(dest, self, size)
+    return dest
 end
 
 -- Wide string (UTF-16) to UTF-8 string
 function string.wcstou8(src)
-    debug.checkarg(src, "string")
+    debug.checkarg(1, src, "string")
     local size = ffi.C.wcslen(src) * 3 -- 1 char of utf8: max 3 byte
     local dest = ffi.new("char[?]", size + 1) -- +1 buffer for the end of null pointer
-    return ffi.C.wcstou8(dest, src, size) and ffi.string(dest) or nil
+    ffi.C.wcstou8(dest, src, size)
+    return ffi.string(dest)
 end
 
 -- Flag for serialization when printing table
@@ -69,25 +73,27 @@ table.print_flag = true -- true: print(tbl) => table.serialize(tbl, 2, true)
 
 -- @private General print function
 -- * support UTF-8 for Windows
+-- * support to print nil
 local function fprint(stdout, ...)
-    local list = {...}
-    local n = #list
-    if n == 0 then
-        ffi.C.fputws(string.u8towcs("nil"), stdout)
-    else
-        for i = 1, n do
-            ffi.C.fputws(
-                string.u8towcs(
-                    (i == 1 and "" or "\t") .. (
-                        (type(list[i]) == 'table' and table.print_flag) and table.serialize(list[i], 2, true)
-                        or (list[i] == nil and "nil" or tostring(list[i]))
-                    )
-                ),
-                stdout
-            )
+    local list = {...} -- #list returns 1 if the list is like {1, nil, 3}
+    local key = 0
+    -- ipairs can't scan all elements if the list is like {1, nil, 3} (scan only 1)
+    for k, v in pairs(list) do
+        if key > 0 then ffi.C.fputws(string.u8towcs("\t"), stdout) end
+        if k > key + 1 then
+            for i = 1, k - key - 1 do
+                ffi.C.fputws(string.u8towcs("nil\t"), stdout)
+            end
         end
+        ffi.C.fputws(
+            string.u8towcs(
+                (type(list[i]) == 'table' and table.print_flag) and table.serialize(list[k], 2, true) or tostring(list[k])
+            ),
+            stdout
+        )
+        key = k
     end
-    ffi.C.fputws(string.u8towcs("\n"), stdout)
+    ffi.C.fputws(string.u8towcs((key == 0 and "nil" or "") .. "\n"), stdout)
 end
 
 -- Override default `print` function
@@ -97,7 +103,7 @@ end
 
 -- Print formatted string
 function printf(format, ...)
-    debug.checkarg(format, "string")
+    debug.checkarg(1, format, "string")
     ffi.C.fputws(format:format(...):u8towcs(), io.stdout)
 end
 
@@ -107,13 +113,13 @@ function eprint(...)
 end
 
 function eprintf(format, ...)
-    debug.checkarg(format, "string")
+    debug.checkarg(1, format, "string")
     ffi.C.fputws(format:format():u8towcs(), io.stderr)
 end
 
 -- Print formatted string to stderr
 function errorf(format, ...)
-    debug.checkarg(format, "string")
+    debug.checkarg(1, format, "string")
     return error(format:format(...))
 end
 

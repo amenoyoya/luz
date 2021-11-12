@@ -227,7 +227,7 @@ extern "C" {
         }
     #else
         __export fs_dirent_t *fs_opendir(const char *_dir) {
-            std::string dir = path_append_slash(_dir);
+            std::string dir = std::move(path_append_slash(_dir));
             unsigned long handler = (unsigned long)opendir(dir.c_str());
             
             if (0 == handler) return nullptr;

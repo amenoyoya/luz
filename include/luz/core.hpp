@@ -38,14 +38,13 @@
 #ifdef _WINDOWS
     #define _U8(str) wcstou8(L##str)
     #define _S(str) L##str
-    #define _fputs(fp, str) fputws((u8towcs(str) + L"\n").c_str(), fp)
-    #define _fprintf(fp, format, ...) fwprintf(fp, u8towcs(format).c_str(), __VA_ARGS__)
 #else
     #define _U8(str) std::string(str)
     #define _S(str) str
-    #define _fputs(fp, str) fputs((_U8(str) + "\n").c_str(), fp)
-    #define _fprintf(fp, format, ...) fwprintf(fp, _U8(format).c_str(), __VA_ARGS__)
 #endif
+
+#define _fputs(fp, str) fputws((u8towcs(str) + L"\n").c_str(), fp)
+#define _fprintf(fp, format, ...) fwprintf(fp, u8towcs(format).c_str(), __VA_ARGS__)
 
 /*** include source files macro ***/
 #ifdef _USE_LUZ_CORE

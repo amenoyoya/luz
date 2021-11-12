@@ -24,6 +24,12 @@ Or you must edit `./vcvars.bat` file following to your Visual C++ environment.
 > .\extlib\build_zlib.bat
 ```
 
+### Build Luz engine
+```powershell
+# Build Luz engine
+> .\src\build.bat
+```
+
 ***
 
 ## Development in Ubuntu 20.04
@@ -44,4 +50,10 @@ $ /bin/bash ./extlib/build_luajit.sh
 
 # Build zlib
 $ /bin/bash ./extlib/build_zlib.sh
+```
+
+### Build Luz engine
+```bash
+# Build Luz engine
+$ ./src/build.sh
 ```

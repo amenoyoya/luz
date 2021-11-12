@@ -19,8 +19,8 @@ teal.config = {
 local original_teal_process_string = teal.process_string
 
 function teal.process_string(input, is_lua, env, filename)
-    package.__chunk = filename
-    package.__dir = filename and fs.path.parentdir(filename:sub(1, 1) == "@" and filename:sub(2) or filename)
+    package.__file = filename and (filename:sub(1, 1) == "@" and filename:sub(2) or filename)
+    package.__dir = package.__file and fs.path.parentdir(package.__file)
     return original_teal_process_string(
         input:sub(1, 3) == "\xEF\xBB\xBF" and input:sub(4) or input,
         is_lua,
@@ -159,16 +159,16 @@ function load(code, chunkname, mode, env)
         return f, err
     end
     return function()
-        -- store previous package.__chunk, package.__dir
-        local __chunk = package.__chunk
+        -- store previous package.__file, package.__dir
+        local __file = package.__file
         local __dir = package.__dir
-        -- enable to get current script info from package.__chunk, package.__dir
-        package.__chunk = chunkname
-        package.__dir = chunkname and fs.path.parentdir(chunkname:sub(1, 1) == "@" and chunkname:sub(2) or chunkname)
+        -- enable to get current script info from package.__file, package.__dir
+        package.__file = chunkname and (chunkname:sub(1, 1) == "@" and chunkname:sub(2) or chunkname)
+        package.__dir = package.__file and fs.path.parentdir(package.__file)
         
         local result = f()
-        -- restore package.__chunk, package.__dir
-        package.__chunk = __chunk
+        -- restore package.__file, package.__dir
+        package.__file = __file
         package.__dir = __dir
 
         return result

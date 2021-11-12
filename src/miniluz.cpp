@@ -19,15 +19,15 @@ __main() {
     os["argv"] = sol::as_table(args);
 
     /// main script: os.argv[1].lua
-    // * package.__chunk <= os.argv[1]
+    // * package.__file <= os.argv[1]
     // * package.__dir <= parent directory of os.argv[1]
     if (args.size() < 2) {
         lua_dotty(lua);
         return 0;
     }
     auto package = lua["package"].get_or_create<sol::table>();
-    package["__chunk"] = path_complete(args[1]);
-    package["__dir"] = path_parentdir(package["__chunk"]);
+    package["__file"] = path_complete(args[1]);
+    package["__dir"] = path_parentdir(package["__file"]);
     auto result = lua.safe_script_file(args[1]);
     if (result.valid()) return 0;
 

@@ -36,8 +36,11 @@ extern "C" {
         return strcpy(dest, path_complete(path).c_str());
     }
 
-    __export void path_stat(path_stat_t *dest, const char *path) {
-        memcpy(dest, path_stat(path).get(), sizeof(path_stat_t));
+    __export bool path_stat(path_stat_t *dest, const char *path) {
+        std::unique_ptr<path_stat_t> stat = path_stat(path);
+        if (!stat) return false;
+        memcpy(dest, stat.get(), sizeof(path_stat_t));
+        return true;
     }
 
     __export const char *path_append_slash(char *dest, const char *path) {
