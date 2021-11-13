@@ -2,6 +2,12 @@
 
 A LuaJIT script engine for a standalone utility application.
 
+## TODO
+
+- Luz is unstable because of Lua's memory management system
+    - Currently Lua's garbage collection and C pointers don't go well
+
+***
 ## Features
 
 - Supports relative module searching system.
@@ -21,10 +27,6 @@ A LuaJIT script engine for a standalone utility application.
         - Load `compa53` module from the Aula engine resource (appended zip file). 
     - `require("compat53.module")`
         - Load `compa53.module` module from the Aula engine resource (appended zip file).
-
-***
-
-## Usage
 
 ***
 

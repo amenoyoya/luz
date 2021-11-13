@@ -108,7 +108,7 @@ std::string path_ext(const std::string &path) {
 }
 
 std::string path_parentdir(const std::string &path, bool isFullPathRequired) {
-    std::string targetpath = isFullPathRequired ? path_complete(path) : std::move(path);
+    std::string targetpath = isFullPathRequired ? path_complete(path) : path;
     size_t size = targetpath.size();
     if (size == 0) return "";
 

@@ -117,7 +117,7 @@ extern "C" {
             return false;
         }
 
-        std::string dir = std::move(path_append_slash(dest));
+        std::string dir = path_append_slash(dest);
         do {
             if (dirent->current_name != "." && dirent->current_name != "..") {
                 if (path_isdir(dirent->current_path)) { // copy directory recursively
@@ -196,14 +196,14 @@ extern "C" {
     #ifdef _WINDOWS
         __export fs_dirent_t *fs_opendir(const char *_dir) {
             WIN32_FIND_DATA info;
-            std::string dir = std::move(path_append_slash(_dir));
+            std::string dir = path_append_slash(_dir);
             unsigned long handler = (unsigned long)FindFirstFile((u8towcs(dir) + L"*.*").c_str(), &info);
 
             if (0 == handler) return nullptr;
             
-            std::string name = std::move(wcstou8(info.cFileName));
+            std::string name = wcstou8(info.cFileName);
             return new fs_dirent_t {
-                handler, std::move(dir), std::move(name), std::move(dir + name)
+                handler, dir, name, dir + name
             };
         }
         
@@ -221,13 +221,13 @@ extern "C" {
             
             if (!self->handler) return false;
             if (!FindNextFile((HANDLE)self->handler, &info)) return false;
-            self->current_name = std::move(wcstou8(info.cFileName));
-            self->current_path = std::move(self->directory + self->current_name);
+            self->current_name = wcstou8(info.cFileName);
+            self->current_path = self->directory + self->current_name;
             return true;
         }
     #else
         __export fs_dirent_t *fs_opendir(const char *_dir) {
-            std::string dir = std::move(path_append_slash(_dir));
+            std::string dir = path_append_slash(_dir);
             unsigned long handler = (unsigned long)opendir(dir.c_str());
             
             if (0 == handler) return nullptr;
@@ -239,7 +239,7 @@ extern "C" {
                 return nullptr;
             }
             return new fs_dirent_t {
-                handler, std::move(dir), dent->d_name, std::move(dir + dent->d_name)
+                handler, dir, dent->d_name, dir + dent->d_name
             };
         }
         
@@ -258,7 +258,7 @@ extern "C" {
             struct dirent* dent = readdir((DIR*)self->handler);
             if (!dent) return false;
             self->current_name = dent->d_name;
-            self->current_path = std::move(self->directory + self->current_name);
+            self->current_path = self->directory + self->current_name;
             return true;
         }
     #endif

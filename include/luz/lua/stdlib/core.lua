@@ -29,6 +29,7 @@ function debug.checkarg(n, ...)
             ))
         end
     end
+    collectgarbage("step", 100)
 end
 
 --- FFI functions ---
@@ -87,7 +88,7 @@ local function fprint(stdout, ...)
         end
         ffi.C.fputws(
             string.u8towcs(
-                (type(list[i]) == 'table' and table.print_flag) and table.serialize(list[k], 2, true) or tostring(list[k])
+                (type(list[k]) == 'table' and table.print_flag) and table.serialize(list[k], 2, true) or tostring(list[k])
             ),
             stdout
         )

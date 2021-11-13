@@ -45,13 +45,13 @@ extern "C" {
         #ifdef _WINDOWS
             static std::string result;
 
-            std::wstring name = std::move(u8towcs(env)), buf;
+            std::wstring name = u8towcs(env), buf;
             unsigned long size = GetEnvironmentVariable(name.c_str(), nullptr, 0);
             
             if(size == 0) return nullptr;
             buf.resize(size);
             GetEnvironmentVariable(name.c_str(), (wchar_t*)buf.c_str(), size);
-            result = std::move(wcstou8(buf));
+            result = wcstou8(buf);
             return result.c_str();
         #else
             return getenv(env);

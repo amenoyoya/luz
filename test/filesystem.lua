@@ -1,23 +1,31 @@
 ﻿assert(os.setcwd(package.__dir))
 print("current working directory:", os.getcwd())
 print("current script file:", package.__file, fs.path.stat(package.__file))
-print("invalid file state:", fs.path.stat"invalid?file!")
+print("invalid file state:", fs.path.stat"invalid?file!", "")
 
 assert(fs.copyfile(package.__file, "✅copied/test.lua"))
 assert(fs.copydir("✅copied", "❗party"))
 assert(fs.rename("✅copied", "❗party/✨subdir"))
 
+print(collectgarbage"stop")
+
 print("file list in ❗party/", fs.enumfiles"❗party")
 assert(fs.rmdir"❗party")
+
+print(collectgarbage"collect")
 
 -- wait for removal of directory
 while fs.path.isdir"❗party" do
     os.sleep(10)
 end
 
+print(collectgarbage"stop")
+
 assert(#fs.enumfiles"❗party" == 0)
 
-print("this file:", fs.readfile(package.__file))
+print(collectgarbage"collect")
+
+-- print("this file:", fs.readfile(package.__file))
 print("write bytes:", fs.writefile("⭐", "⭐🌍🌛"))
 
 local file = fs.open("⭐")
@@ -39,10 +47,16 @@ local function compress(zip, dirPath, baseDirLen, password, rootDir)
             local path = f:readpath()
             if fs.path.isdir(path) then
                 -- process recursively
-                if not compress(zip, path, baseDirLen, password, rootDir) then return false end
+                if not compress(zip, path, baseDirLen, password, rootDir) then
+                    f:close()
+                    return false
+                end
             elseif fs.path.isfile(path) then
                 -- append file into zip
-                if not zip:append_file(path, rootDir .. path:sub(baseDirLen + 1), password) then return false end
+                if not zip:append_file(path, rootDir .. path:sub(baseDirLen + 1), password) then
+                    f:close()
+                    return false
+                end
             end
         end
     until not f:seek()
