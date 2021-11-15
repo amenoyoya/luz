@@ -65,7 +65,7 @@ bool unz_uncompress(const char *zip, const char *dir, const char *password);
 local zip_archiver = class {
     constructor = function (self, filename, mode, compresslevel)
         debug.checkarg(1, filename, "string")
-        self.handler = ffi.C.zip_open(filename, mode or "w", compresslevel or 0)
+        self.handler = ffi.new("struct zip_archiver_t*", ffi.C.zip_open(filename, mode or "w", compresslevel or 0))
     end,
 
     destructor = function (self)
@@ -139,7 +139,7 @@ end
 local zip_extractor = class {
     constructor = function (self, filename)
         debug.checkarg(1, filename, "string")
-        self.handler = ffi.C.unz_open(filename)
+        self.handler = ffi.new("struct unz_archiver_t*", ffi.C.unz_open(filename))
     end,
 
     destructor = function (self)

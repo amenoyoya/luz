@@ -10,14 +10,14 @@ cd %~dp0
 %compile% miniluz.cpp
 link.exe /ERRORREPORT:NONE /NOLOGO /MACHINE:X86 /OUT:miniluz.exe miniluz.obj
 
-%compile% luz.cpp
-link.exe /ERRORREPORT:NONE /NOLOGO /MACHINE:X86 /OUT:luz.exe luz.obj
+@REM %compile% luz.cpp
+@REM link.exe /ERRORREPORT:NONE /NOLOGO /MACHINE:X86 /OUT:luz.exe luz.obj
 
 :: bundle lua resources
-call miniluz.exe bundle.lua
+@REM call miniluz.exe bundle.lua
 
 del *.obj
 del *.lib
 del *.exp
-move miniluz.exe ..\dist\bin\x86\
-move luz.exe ..\dist\bin\x86\
+@REM move miniluz.exe ..\dist\bin\x86\
+@REM move luz.exe ..\dist\bin\x86\

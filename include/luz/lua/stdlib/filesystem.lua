@@ -200,7 +200,7 @@ local filerw = class {
                     self.handler = nil
                 end
             end
-            self.handler = ffi.C.fs_popen(filename, mode.sub(2))
+            self.handler = ffi.new("struct FILE*", ffi.C.fs_popen(filename, mode.sub(2)))
         end
         -- create parent directory recursively
         if mode:match"^w" then
@@ -216,7 +216,7 @@ local filerw = class {
                 self.handler = nil
             end
         end
-        self.handler = ffi.C.fs_fopen(filename, mode)
+        self.handler = ffi.new("struct FILE*", ffi.C.fs_fopen(filename, mode))
     end,
 
     destructor = function(self)
@@ -350,7 +350,7 @@ end
 local enumerator = class {
     constructor = function (self, dir)
         debug.checkarg(1, dir, "string")
-        self.handler = ffi.C.fs_opendir(dir)
+        self.handler = ffi.new("struct fs_dirent_t*", ffi.C.fs_opendir(dir))
     end,
 
     destructor = function (self)
