@@ -3,45 +3,49 @@
 #define _USE_LUZ_LUA
 #include <luz/lua.hpp>
 
+/// general smart pointer
+typedef std::unique_ptr<void, std::function<void(void*)>> smart_ptr;
+
 /// record: memory management system
-struct record_t {
-    unsigned long   handler;
-    size_t          size;
-};
-typedef std::unique_ptr<record_t,std::function<void(record_t*)>> record_ptr;
-
-inline void reco_deleter(record_t *self, const std::function<void(unsigned long, size_t)> &custom_deleter) {
-    if (!self) return;
-    if (self->handler) custom_deleter(self->handler, self->size);
-    delete self;
-    self = nullptr;
-}
-
-inline void reco_delete(record_t *self) {
-    reco_deleter(self, [](unsigned long handler, size_t size) {
-        char *ptr = (char*)handler;
-        delete [] ptr;
-        ptr = nullptr;
-    });
-}
-
-inline record_ptr reco_new(size_t size, const void *data = nullptr) {
-    auto ptr = new char[size + 1](); // allocate memory and set to 0
-    auto self = record_ptr(new record_t { (unsigned long)ptr, size }, reco_delete);
-    if (!self) {
-        delete [] ptr;
-        return nullptr;
+class record {
+private:
+    smart_ptr   m_handler;
+    size_t      m_size;
+public:
+    record(const std::function<std::tuple<unsigned long, size_t>(void)> &allocator, const std::function<void(void*)> &deleter)
+        : m_handler(nullptr), m_size(0)
+    {
+        auto alloc = allocator();
+        this->m_handler = smart_ptr((void*)std::get<0>(alloc), deleter);
+        this->m_size = std::get<1>(alloc);
     }
-    if (data) memcpy(ptr, data, size);
-    return std::move(self);
+    ~record() {
+        this->close();
+    }
+
+    void close() {
+        this->m_handler.reset();
+        this->m_size = 0;
+    }
+
+    unsigned long ptr() { return (unsigned long)this->m_handler.get(); }
+    std::string str() { return this->m_handler ? (const char*)this->m_handler.get() : ""; }
+    const size_t &size() const { return this->m_size; }
 };
 
-inline void reco_close(record_ptr &self) {
-    self.reset();
-}
-
-inline std::string reco_tostr(record_t *self) {
-    return self && self->handler ? (const char*)self->handler : "";
+/// normal record factory
+inline std::unique_ptr<record> reco_new(size_t size, const void *data = nullptr) {
+    return std::unique_ptr<record>(new record(
+        [&size, &data]() {
+            auto ptr = new char[size + 1](); // allocate memory (+1 buffer for the end null pointer) and set to 0
+            if (data) memcpy(ptr, data, size);
+            return std::make_tuple((unsigned long)ptr, size);
+        },
+        [](void *ptr) {
+            char *data = (char*)ptr;
+            delete [] data;
+        }
+    ));
 }
 
 /// lua core library
@@ -256,19 +260,22 @@ __main() {
     }
 
     /// record: memory management system
-    lua.new_usertype<record_t>("reco",
-        "handler", &record_t::handler,
-        "size", &record_t::size,
-        "new", sol::overload(
-            [](size_t size, const void *data) { return reco_new(size, data); },
-            [](size_t size) { return reco_new(size); }
-        ),
-        "close", reco_close,
-        "tostr", reco_tostr,
-        "cast", [&lua](record_t *self, const std::string &ctype) {
-            return lua.safe_script("return ffi.cast('" + ctype + "', " + tostr(self->handler) + ")");
-        }
+    auto reco = lua["reco"].get_or_create<sol::table>();
+    reco.new_usertype<record>("record",
+        sol::constructors<record(const std::function<std::tuple<unsigned long, size_t>(void)>&, const std::function<void(void*)>&)>(),
+        "close", &record::close,
+        "ptr", &record::ptr,
+        "str", &record::str,
+        "cast", [&lua](record *self, const std::string &ctype) {
+            return lua.safe_script("return ffi.cast('" + ctype + "', " + tostr(self->ptr()) + ")");
+        },
+        "size", &record::size
     );
+    
+    reco.set_function("new", sol::overload(
+        [](size_t size, const void *data) { return reco_new(size, data); },
+        [](size_t size) { return reco_new(size); }
+    ));
 
     /// os.argv <= args (std::vector<std::string(UTF-8)>)
     auto os = lua["os"].get_or_create<sol::table>();
