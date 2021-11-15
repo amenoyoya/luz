@@ -6,10 +6,9 @@
 
 function L(str)
     local wstr = reco.new(str:len() * ffi.sizeof("wchar_t"))
-    print("L", wstr.handler, wstr.size)
     if wstr == nil then return nil end
-    ffi.C.u8towcs(ffi.cast("wchar_t*", wstr.handler), str, wstr.size)
-    return ffi.cast("wchar_t*", wstr.handler)
+    ffi.C.u8towcs(wstr:cast"wchar_t*", str, wstr.size)
+    return wstr:cast"wchar_t*"
 end
 
 ffi.C.MessageBoxW(0, L"hello", L"title", 0)

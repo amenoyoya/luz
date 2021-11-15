@@ -264,7 +264,10 @@ __main() {
             [](size_t size) { return reco_new(size); }
         ),
         "close", reco_close,
-        "tostr", reco_tostr
+        "tostr", reco_tostr,
+        "cast", [&lua](record_t *self, const std::string &ctype) {
+            return lua.safe_script("return ffi.cast('" + ctype + "', " + tostr(self->handler) + ")");
+        }
     );
 
     /// os.argv <= args (std::vector<std::string(UTF-8)>)

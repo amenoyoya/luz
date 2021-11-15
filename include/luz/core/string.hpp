@@ -3,6 +3,7 @@
 #include "config.hpp"
 #include <string>
 #include <cstring>
+#include <sstream>
 #include <clocale>
 
 extern "C" {
@@ -65,4 +66,25 @@ inline std::string strtou8(const std::string &source) {
     #else
         return std::move(source);
     #endif
+}
+
+/// any type => string
+template<typename T>
+std::string tostr(const T& target, unsigned short precision = 0) {
+    std::stringstream ss;
+    
+    if(precision > 0) ss.precision(precision);
+    ss << target;
+    return std::move(ss.str());
+}
+
+/// string => any type
+template<typename T>
+T strto(const std::string &str) {
+    T result;
+    std::stringstream ss;
+    
+    ss << str;
+    ss >> result;
+    return result;
 }
