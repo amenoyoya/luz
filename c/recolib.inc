@@ -184,15 +184,17 @@ wchar_t *fgetws(wchar_t *dest, size_t n, struct FILE *fp);
 -- UTF-8 string to wide string (UTF-16)
 function string:u8towcs()
     debug.checkargs(1, self, "string")
-    local dest = reco.new(self:len() * ffi.sizeof"wchar_t")
-    return ffi.C.u8towcs(dest:cast"wchar_t*", self, dest.size) and dest:cast"const wchar_t*" or nil
+    -- local dest = reco.new(self:len() * ffi.sizeof"wchar_t")
+    local dest = ffi.new("wchar_t[?]", self:len() + 1)
+    return ffi.C.u8towcs(dest, self, ffi.sizeof(dest) - 1) and dest or nil
 end
 
 -- Wide string (UTF-16) to UTF-8 string
 function string.wcstou8(src)
     debug.checkargs(1, src, "cdata|userdata")
-    local dest = reco.new(ffi.C.wcslen(src) * 3) -- max 3 byte in utf-8 1 char
-    return ffi.C.wcstou8(dest:cast"char*", src, dest.size) and dest:tostr() or ""
+    -- local dest = reco.new(ffi.C.wcslen(src) * 3) -- max 3 byte in utf-8 1 char
+    local dest = ffi.new("char[?]", ffi.C.wcslen(src) * 3 + 1)
+    return ffi.C.wcstou8(dest, src, ffi.sizeof(dest) - 1) and ffi.string(dest) or ""
 end
 
 -- @private General print function
