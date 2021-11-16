@@ -7,7 +7,7 @@
 function L(str)
     local wstr = reco.new(str:len() * ffi.sizeof("wchar_t"))
     if wstr == nil then return nil end
-    ffi.C.u8towcs(wstr:cast"wchar_t*", str, wstr:size())
+    ffi.C.u8towcs(wstr:cast"wchar_t*", str, wstr.size)
     return wstr:cast"wchar_t*"
 end
 
@@ -25,13 +25,13 @@ local function myreco_new(name)
             printf("see you %s\n", ffi.string(ffi.cast("const char*", handler)))
         end
     )
-    return obj:ptr() ~= 0 and obj or nil
+    return obj:addr() ~= 0 and obj or nil
 end
 
 local iam = myreco_new"test"
-printf("I'm %s\n", iam:str())
+printf("I'm %s\n", iam:tostr())
 
 iam = myreco_new"✅"
 iam:close()
-printf("I'm %s\n", iam:str())
+printf("I'm %s\n", iam:tostr())
 iam:close()

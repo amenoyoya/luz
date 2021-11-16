@@ -29,7 +29,6 @@ function debug.checkarg(n, ...)
             ))
         end
     end
-    collectgarbage("step", 100)
 end
 
 --- FFI functions ---

@@ -2,35 +2,34 @@
 #define _USE_LUZ_ZIP
 #define _USE_LUZ_LUA
 #include <luz/lua.hpp>
+// #include "recolib.inc"
 
 /// general smart pointer
-typedef std::unique_ptr<void, std::function<void(void*)>> smart_ptr;
+typedef std::unique_ptr<void, std::function<void(void*)>> record_ptr;
 
 /// record: memory management system
-class record {
-private:
-    smart_ptr   m_handler;
-    size_t      m_size;
-public:
+struct record {
+    record_ptr  handler;
+    size_t      size;
+    
     record(const std::function<std::tuple<unsigned long, size_t>(void)> &allocator, const std::function<void(void*)> &deleter)
-        : m_handler(nullptr), m_size(0)
+        : handler(nullptr), size(0)
     {
         auto alloc = allocator();
-        this->m_handler = smart_ptr((void*)std::get<0>(alloc), deleter);
-        this->m_size = std::get<1>(alloc);
+        this->handler = record_ptr((void*)std::get<0>(alloc), deleter);
+        this->size = std::get<1>(alloc);
     }
     ~record() {
         this->close();
     }
 
     void close() {
-        this->m_handler.reset();
-        this->m_size = 0;
+        this->handler.reset();
+        this->size = 0;
     }
 
-    unsigned long ptr() { return (unsigned long)this->m_handler.get(); }
-    std::string str() { return this->m_handler ? (const char*)this->m_handler.get() : ""; }
-    const size_t &size() const { return this->m_size; }
+    unsigned long addr() { return (unsigned long)this->handler.get(); }
+    std::string tostr() { return this->handler ? (const char*)this->handler.get() : ""; }
 };
 
 /// normal record factory
@@ -263,13 +262,13 @@ __main() {
     auto reco = lua["reco"].get_or_create<sol::table>();
     reco.new_usertype<record>("record",
         sol::constructors<record(const std::function<std::tuple<unsigned long, size_t>(void)>&, const std::function<void(void*)>&)>(),
+        "size", &record::size,
         "close", &record::close,
-        "ptr", &record::ptr,
-        "str", &record::str,
+        "addr", &record::addr,
+        "tostr", &record::tostr,
         "cast", [&lua](record *self, const std::string &ctype) {
-            return lua.safe_script("return ffi.cast('" + ctype + "', " + tostr(self->ptr()) + ")");
-        },
-        "size", &record::size
+            return lua.safe_script("return ffi.cast('" + ctype + "', " + tostr(self->addr()) + ")");
+        }
     );
     
     reco.set_function("new", sol::overload(
